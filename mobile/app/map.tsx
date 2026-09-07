@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { JourneyHeader } from '../components/learning/JourneyHeader';
 import { BimboJourney } from '../components/learning/BimboJourney';
 import { useCampaignProgress } from '../hooks/useCampaignProgress';
@@ -31,7 +32,7 @@ const NODE_SIZE = 75;   // px — circular level badge
 const BMO_SIZE  = 88;   // px — BMO character
 
 // The shared header is outside the map; no artwork inset is needed.
-const NAV_H = 0;
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static image registry — RN requires static require() paths
@@ -138,6 +139,8 @@ const BMO_POSITIONS: BmoPos[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 export default function MapScreen() {
   const router    = useRouter();
+  const insets = useSafeAreaInsets();
+  const NAV_H = insets.top + 12 + Math.min(SCREEN_W - 24, 560) * 736 / 2137 * 0.62;
   const { completedNodeId, transitionId } = useLocalSearchParams<{ completedNodeId?: string; transitionId?: string }>();
   const scrollRef = useRef<ScrollView>(null);
   const progress  = useCampaignProgress();
@@ -227,12 +230,11 @@ export default function MapScreen() {
   // ── Render ────────────────────────────────────────────────
   return (
     <View style={styles.screen}>
-      <JourneyHeader />
       {/* ── Scrollable map ── */}
       <ScrollView
         ref={scrollRef}
         style={styles.root}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { height: NAV_H + MAP_H }]}
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never"
@@ -240,8 +242,8 @@ export default function MapScreen() {
         {/* Background — offset by nav height so it aligns with scrollable content */}
         <Image
           source={require('../assets/map_bg.png')}
-          style={[styles.mapBg, { top: navBarH }]}
-          resizeMode="cover"
+          style={[styles.mapBg, { top: 0, height: NAV_H + MAP_H }]}
+          resizeMode="stretch"
         />
 
         {/* ── Level nodes (1–15) ── */}
@@ -312,6 +314,11 @@ export default function MapScreen() {
         })}
         {destination && <BimboJourney key={`${completedNodeId ?? ''}:${target?.id}`} from={departure} to={destination} transitionId={transitionId} />}
       </ScrollView>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }}>
+          <JourneyHeader />
+        </View>
+
+
 
     </View>
   );
@@ -330,7 +337,7 @@ const styles = StyleSheet.create({
   // bottom edge of map_bg.png — no blue gap below the image.
   content: {
     width: SCREEN_W,
-    height: NAV_H + MAP_H,
+    height: MAP_H,
     position: 'relative',
   },
 

@@ -91,8 +91,8 @@ export default function QuestScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-      <JourneyHeader />
-    <ScrollView ref={scrollRef} style={[s.root, { backgroundColor: '#FFFFFF' }]} contentContainerStyle={s.content}>
+      <JourneyHeader compact />
+    <ScrollView ref={scrollRef} style={[s.root, { backgroundColor: 'transparent' }]} contentContainerStyle={[s.content, { paddingTop: 8 }]}>
       {/* Header */}
       <View style={s.header}>
         <Text style={s.questTitle}>{quest.title}</Text>

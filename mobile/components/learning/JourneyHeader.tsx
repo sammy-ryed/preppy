@@ -6,7 +6,7 @@ import { useCampaignProgress } from '../../hooks/useCampaignProgress';
 
 // The artwork has transparent padding. Crop its display bounds so the pink bar
 // fills the header without stretching Bimbo or leaving a large colored strip.
-export function JourneyHeader() {
+export function JourneyHeader({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -15,7 +15,7 @@ export function JourneyHeader() {
   const imageHeight = barWidth * 736 / 2137;
   const completed = progress.nodes.filter(node => node.status === 'completed').length;
   const percent = progress.nodes.length ? 100 * completed / progress.nodes.length : 0;
-  return <View style={[s.header, { paddingTop: insets.top + 4 }]}>
+  return <View style={[s.header, { paddingTop: insets.top + (compact ? 0 : 4), paddingBottom: compact ? 0 : 8 }]}>
     <StatusBar style="dark" />
     <View style={{ width: barWidth, height: imageHeight * 0.62, overflow: 'hidden' }}>
       <Image source={require('../../assets/head_bar.png')} resizeMode="contain"
@@ -32,7 +32,9 @@ export function JourneyHeader() {
   </View>;
 }
 const s = StyleSheet.create({
-  header: { alignItems: 'center', paddingBottom: 8, backgroundColor: '#FFF9F4', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EEDFD9' },
+  // Stay in normal layout flow: scrolling content starts below the complete
+  // safe-area/header height and cannot slide underneath its buttons or Bimbo.
+  header: { alignItems: 'center', paddingBottom: 8, backgroundColor: 'transparent', flexShrink: 0 },
   track: { position: 'absolute', borderRadius: 12, backgroundColor: '#F9D5E1', overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 12, backgroundColor: '#FF8DC7' },
 });
