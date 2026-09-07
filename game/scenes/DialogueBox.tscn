@@ -23,22 +23,30 @@ script = ExtResource("1_r2og1")
 
 [node name="Panel" type="Panel" parent="." unique_id=1965628513]
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 140.0
+offset_top = 470.0
+offset_right = 1140.0
+offset_bottom = 700.0
 
 [node name="Label" type="Label" parent="Panel" unique_id=1059706639]
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+offset_left = 25.0
+offset_top = 15.0
+offset_right = 975.0
+offset_bottom = 60.0
 
 [node name="TextureProgressBar" type="TextureProgressBar" parent="Panel" unique_id=1405557858]
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 25.0
+offset_top = 65.0
+offset_right = 975.0
+offset_bottom = 129.0
 texture_under = SubResource("GradientTexture2D_pe8jb")
 texture_progress = SubResource("GradientTexture2D_giuoe")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Panel" unique_id=1660023693]
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 25.0
+offset_top = 100.0
+offset_right = 975.0
+offset_bottom = 220.0

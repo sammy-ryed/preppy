@@ -1,3 +1,20 @@
-# Godot 4+ specific ignores
+# Godot
 .godot/
+
+# Android generated/build files
 /android/
+
+# Exported builds
+*.apk
+*.aab
+*.pck
+*.wasm
+*.html
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor settings
+.vscode/
+.idea/
