@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmitOnError": true,
+    "types": [],
+    "lib": ["ES2022"],
+    "rootDir": ".",
+    "outDir": ".domain-test"
+  },
+  "include": ["types/**/*.ts", "data/**/*.ts", "domain/**/*.ts", "services/learningService.ts", "services/learningApplication.ts", "repositories/**/*.ts"]
+}

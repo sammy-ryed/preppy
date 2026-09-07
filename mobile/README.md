@@ -1,8 +1,10 @@
 # PREPPY mobile foundation
 
 Shared Expo SDK 57 / React Native / TypeScript / Expo Router application.
-All screens are temporary navigation placeholders. No learning engine, scoring,
-auth, database, progression, or Godot integration is implemented yet.
+All screens remain temporary navigation placeholders. Domain scoring, the quest
+controller, Supabase save services, and connected hooks are implemented separately
+from presentation. The root layout mounts the shared learning provider.
+See [backend setup](docs/backend-setup.md) to connect your Supabase project.
 
 ## Run
 
@@ -27,6 +29,7 @@ On Windows PowerShell, if execution policy blocks `npm.ps1` or `npx.ps1`, use
 
 ```sh
 npm run typecheck
+npm test
 npm run lint
 npm run check:dependencies
 npm run export
@@ -57,15 +60,16 @@ Read `AGENTS.md` and `docs/ui-contract.md`. Replace placeholder presentation usi
 your Figma/Stitch work while preserving the routes and their parameter names.
 Reusable visuals belong in `components/ui/`; create `components/screens/` if useful.
 The template PNGs in `assets/` are not PREPPY branding. Replace them as designs land.
-Do not import the proposed hooks until Sammy implements them or access Supabase
-directly. Keep temporary UI fixtures isolated from future domain implementation.
+Use the implemented onboarding, campaign, saved quest, and skills hooks. Do not
+access Supabase directly from UI. See [the handoff instructions](docs/valli-handoff.md)
+for branch coordination and the implemented API contract.
 
 ## Structure grows with implementation
 
-Only currently useful folders are tracked. Sammy will add `data/`, `domain/`,
-`services/`, `repositories/`, `hooks/`, `providers/`, `lib/`, `types/`,
-`integrations/godot/`, `components/learning/`, and `components/visualisations/`
-when actual implementation begins. See `AGENTS.md` for ownership boundaries.
+Only currently useful folders are tracked. Sammy's implemented code lives in
+`data/`, `domain/`, `services/`, `repositories/`, `hooks/`, `providers/`, `lib/`, and `types/`.
+Godot integration and learning/visualization renderers will be added
+when needed. See `AGENTS.md` for ownership boundaries.
 The repository's `game/` remains Ayush-owned.
 
 ## Dependencies
@@ -76,6 +80,9 @@ setup dependencies. React DOM and React Native Web enable Valli's browser previe
 Router brings in Reanimated and Worklets transitively; explicit Expo-compatible
 pins prevent npm from selecting versions incompatible with Expo Go. The scaffold
 adds no animation behavior. TypeScript and Expo's ESLint configuration provide checks.
+Supabase, AsyncStorage, and the URL polyfill support authentication/persistence.
+PGlite is development-only and runs migration/RLS tests in embedded PostgreSQL;
+it is not imported into the app.
 
 Use `npx expo install <package>` for SDK dependencies and retain `package-lock.json`.
 Do not run forced dependency upgrades merely to silence transitive audit warnings.

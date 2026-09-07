@@ -54,7 +54,7 @@ not edit it unless explicitly asked. Godot integration will eventually live in
 - Domain events are semantic (for example `success`, `failure`, `perfect`,
   `achievement`, `game_unlock`, `boss_complete`). Map events to Bimbo assets in
   presentation; never put image paths in scoring or progression services.
-- The hook examples in the contract are directions, not implemented exports.
+- The UI contract documents implemented hooks and explicitly marks future APIs.
 
 ## Work discipline
 
