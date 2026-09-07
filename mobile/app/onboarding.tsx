@@ -228,7 +228,8 @@ export default function OnboardingScreen() {
   const [name, setName]                       = useState('');
   const [aptitude, setAptitude]               = useState<SelfAssessedLevel | null>(null);
   const [dsa, setDsa]                         = useState<SelfAssessedLevel | null>(null);
-  const [campaignId, setCampaignId]           = useState<string | null>(null);
+  const [selectedCampaignId, setCampaignId]   = useState<string | null>(null);
+  const campaignId = selectedCampaignId ?? onboarding.campaigns[0]?.id ?? null;
 
   const cardTranslateX = useSharedValue(0);
   const cardOpacity    = useSharedValue(1);
@@ -259,13 +260,6 @@ export default function OnboardingScreen() {
       })();
     }, 170);
   };
-
-  // Default campaign when campaigns load and none selected yet
-  useEffect(() => {
-    if (onboarding.campaigns.length > 0) {
-      setCampaignId((prev) => prev ?? onboarding.campaigns[0].id);
-    }
-  }, [onboarding.campaigns]);
 
   // If we're already onboarded, push to map
   useEffect(() => {
