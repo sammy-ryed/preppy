@@ -1,6 +1,10 @@
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef } from 'react';
+import { Redirect, useRouter, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLearningQuest } from '../../hooks/useLearningQuest';
+import { JourneyHeader } from '../../components/learning/JourneyHeader';
+import { QuizCard } from '../../components/learning/QuizCard';
+import { StudyCard } from '../../components/learning/StudyCard';
 
 const BLUE = '#3A7BD5';
 const BLUE_DARK = '#2563B8';
@@ -44,6 +48,8 @@ export default function QuestScreen() {
   const router = useRouter();
   const { nodeId } = useLocalSearchParams<{ nodeId: string }>();
   const quest = useLearningQuest(nodeId);
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [quest.phase, quest.question?.id]);
 
   // ── Loading ──────────────────────────────────────────────
   if (quest.phase === 'loading') {
@@ -57,8 +63,7 @@ export default function QuestScreen() {
 
   // ── Needs onboarding ─────────────────────────────────────
   if (quest.phase === 'needs_onboarding') {
-    router.replace('/onboarding');
-    return null;
+    return <Redirect href="/onboarding" />;
   }
 
   // ── Unavailable / locked ─────────────────────────────────
@@ -85,10 +90,13 @@ export default function QuestScreen() {
   }
 
   return (
-    <ScrollView style={s.root} contentContainerStyle={s.content}>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <JourneyHeader compact />
+    <ScrollView ref={scrollRef} style={[s.root, { backgroundColor: 'transparent' }]} contentContainerStyle={[s.content, { paddingTop: 8 }]}>
       {/* Header */}
       <View style={s.header}>
         <Text style={s.questTitle}>{quest.title}</Text>
+        {quest.section && <Text style={s.sectionTag}>{quest.section.subject.toUpperCase()} · Part {quest.section.number} of {quest.section.count}</Text>}
         {quest.questionCount > 0 && (
           <Text style={s.qProgress}>
             {quest.answeredCount}/{quest.questionCount} answered
@@ -96,79 +104,18 @@ export default function QuestScreen() {
         )}
       </View>
 
-      {/* ── Lesson ────────────────────────────────────────── */}
-      {quest.phase === 'lesson' && quest.lesson && (
-        <View style={s.section}>
-          <Text style={s.sectionTag}>LESSON</Text>
-          <Text style={s.lessonLead}>{quest.lesson.introduction[0]}</Text>
-          {quest.lesson.introduction.slice(1).map((para, i) => (
-            <Text key={i} style={s.lessonBody}>{para}</Text>
-          ))}
-          <ActionButton label="Continue →" onPress={quest.next} />
-        </View>
-      )}
+      {['lesson', 'example', 'visualization'].includes(quest.phase) && <StudyCard quest={quest} />}
 
-      {/* ── Example ───────────────────────────────────────── */}
-      {quest.phase === 'example' && quest.example && (
-        <View style={s.section}>
-          <Text style={s.sectionTag}>WORKED EXAMPLE</Text>
-          <Text style={s.examplePrompt}>{quest.example.prompt}</Text>
-          {quest.example.steps.map((step, i) => (
-            <View key={i} style={s.exampleStep}>
-              <Text style={s.exampleStepNum}>{i + 1}.</Text>
-              <Text style={s.exampleStepText}>{step}</Text>
-            </View>
-          ))}
-          <ActionButton label="Continue →" onPress={quest.next} />
-        </View>
-      )}
-
-      {/* ── Question ──────────────────────────────────────── */}
-      {quest.phase === 'question' && quest.question && (
-        <View style={s.section}>
-          <ProgressBar current={quest.answeredCount} total={quest.questionCount} />
-          <Text style={s.sectionTag}>
-            QUESTION {quest.questionNumber ?? ''} of {quest.questionCount}
-          </Text>
-          <Text style={s.questionPrompt}>{quest.question.prompt}</Text>
-          <View style={s.options}>
-            {quest.question.options.map((opt) => (
-              <Pressable
-                key={opt.id}
-                style={s.optionBtn}
-                onPress={() => quest.submitAnswer({ questionId: quest.question!.id, selectedOptionId: opt.id })}
-                accessibilityRole="radio"
-              >
-                <View style={s.optionDot} />
-                <Text style={s.optionText}>{opt.text}</Text>
-              </Pressable>
-            ))}
-          </View>
-          {quest.hint ? (
-            <Text style={s.hintText}>💡 {quest.hint}</Text>
-          ) : (
-            <ActionButton label="💡 Show hint" onPress={quest.requestHint} variant="secondary" />
-          )}
-        </View>
-      )}
-
-      {/* ── Feedback ──────────────────────────────────────── */}
-      {quest.phase === 'feedback' && quest.feedback && (
-        <View style={s.section}>
-          <View style={[s.feedbackCard, quest.feedback.correct ? s.feedbackCorrect : s.feedbackWrong]}>
-            <Text style={s.feedbackIcon}>{quest.feedback.correct ? '✅' : '❌'}</Text>
-            <Text style={s.feedbackHeading}>
-              {quest.feedback.correct ? 'Correct!' : 'Not quite'}
-            </Text>
-            <Text style={s.feedbackExplanation}>{quest.feedback.explanation}</Text>
-          </View>
-          <ActionButton label="Continue →" onPress={quest.next} />
-        </View>
+      {(quest.phase === 'question' || quest.phase === 'feedback') && quest.question && (
+        <QuizCard key={quest.question.id} quest={quest} />
       )}
 
       {/* ── Result ────────────────────────────────────────── */}
       {quest.phase === 'result' && (
         <View style={s.section}>
+          {quest.result?.sectionPerformances?.map(section => <View key={section.subject}>
+            <Text style={s.sectionTag}>{section.subject.toUpperCase()} · {section.performance.score}/100</Text>
+          </View>)}
           {/* Saving/pending */}
           {quest.submitting && (
             <View style={s.savingRow}>
@@ -189,6 +136,13 @@ export default function QuestScreen() {
           {quest.result && (
             <View style={s.resultCard}>
               <Text style={s.resultHeading}>Quest complete!</Text>
+              {quest.result.skillChanges.map(change => (
+                <View key={change.skillId} style={{ alignSelf: 'stretch', gap: 6 }}>
+                  <Text style={s.sectionTag}>{change.skillId.replace(/_/g, ' ')}</Text>
+                  <Text style={s.lessonBody}>{change.before.mastery} → {change.after.mastery} / 100</Text>
+                  <ProgressBar current={change.after.mastery} total={100} />
+                </View>
+              ))}
               {quest.saveOutcome?.status === 'saved' && quest.saveOutcome.xpAwardedNow > 0 && (
                 <View style={s.xpBadge}>
                   <Text style={s.xpBadgeText}>+{quest.saveOutcome.xpAwardedNow} XP</Text>
@@ -213,10 +167,11 @@ export default function QuestScreen() {
             </View>
           )}
 
-          <ActionButton label="← Back to map" onPress={() => router.replace('/map')} />
+          <ActionButton label="← Back to map" onPress={() => router.replace({ pathname: '/map', params: quest.saveOutcome?.status === 'saved' ? { completedNodeId: nodeId, transitionId: quest.saveOutcome.receipt.attemptId } : {} })} />
         </View>
       )}
     </ScrollView>
+    </View>
   );
 }
 

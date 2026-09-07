@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { learningContent } from '../data/learningContent';
+import { appContent as learningContent } from '../data/appContent';
 import { connectLearningBackend } from '../services/backend';
 import { createLearningApplication } from '../services/learningApplication';
 import type { LearningApplication } from '../types/application';

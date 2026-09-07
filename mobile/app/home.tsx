@@ -1,30 +1,5 @@
-import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Redirect } from 'expo-router';
 
 export default function HomeScreen() {
-  const router = useRouter();
-  return (
-    <View style={styles.root}>
-      <Text style={styles.title}>Home</Text>
-      <Text style={styles.sub}>Content coming soon…</Text>
-      <Pressable style={styles.btn} onPress={() => router.back()}>
-        <Text style={styles.btnText}>← Back</Text>
-      </Pressable>
-    </View>
-  );
+  return <Redirect href="/" />;
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1, backgroundColor: '#FF8DC7',
-    alignItems: 'center', justifyContent: 'center', gap: 20,
-  },
-  title: { fontSize: 42, fontFamily: 'BalooTamma2_700Bold', color: '#fff' },
-  sub:   { fontSize: 16, fontFamily: 'InstrumentSans_400Regular', color: 'rgba(255,255,255,0.75)' },
-  btn: {
-    marginTop: 12, backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 24, paddingVertical: 12, paddingHorizontal: 28,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
-  },
-  btnText: { fontSize: 16, fontFamily: 'InstrumentSans_600SemiBold', color: '#fff' },
-});

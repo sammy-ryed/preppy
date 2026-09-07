@@ -1,5 +1,10 @@
 # Godot prototype review and bridge contract v1
 
+**September 8 update:** the Expo receiver, SQL session persistence and source win
+bridge are now implemented. See [current integration handoff](integration-checkpoint.md).
+The review below describes the earlier prototype; touch/combat/dialogue fixes
+have since been merged. A fresh web export and hosted URL are still required.
+
 Sammy owns the Expo receiver, session persistence, rewards, and progression.
 Ayush owns Godot, the web export, touch controls, and emitting game events.
 This document defines the next integration; the WebView/session receiver is not

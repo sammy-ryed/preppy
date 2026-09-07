@@ -1,5 +1,12 @@
 # PREPPY mobile: team ownership and agent instructions
 
+## Current ownership update
+
+Sammy now owns the entire `mobile/` folder, including UI, as explicitly directed
+on September 8. The role split below records the original team arrangement;
+it does not restrict mobile UI changes requested by Sammy. Preserve existing
+work unless the requested change calls for replacing it.
+
 This is the shared Expo / React Native / TypeScript / Expo Router foundation.
 Read current files before changing them. Expo SDK 57 documentation:
 https://docs.expo.dev/versions/v57.0.0/

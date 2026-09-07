@@ -37,6 +37,7 @@ test('PostgreSQL migration and RPC adapter integration', async t => {
     insert into auth.users values ('11111111-1111-4111-8111-111111111111'), ('22222222-2222-4222-8222-222222222222');
   `);
   await db.exec(readFileSync(join(__dirname, '../../supabase/migrations/202609070001_learning_progress.sql'), 'utf8'));
+  await db.exec(readFileSync(join(__dirname, '../../supabase/migrations/202609080001_game_sessions.sql'), 'utf8'));
   const user1 = '11111111-1111-4111-8111-111111111111';
   const user2 = '22222222-2222-4222-8222-222222222222';
   async function login(userId) {
@@ -186,6 +187,43 @@ test('PostgreSQL migration and RPC adapter integration', async t => {
     assert.deepEqual(restored.nodeResults[campaign.nodes[14].id].unlockedCheckpointIds,[campaign.checkpoints[2].id]);
     assert.equal(restored.nodeResults[campaign.nodes[4].id].unlockedNodeIds.length,0);
     assert.deepEqual(await curriculum.initializeProgress(curriculumKey,{aptitudeLevel:'advanced',dsaLevel:'advanced'}),restored);
+  });
+
+  await t.test('game sessions validate gates, cancel stale sessions, and atomically award once', async () => {
+    const campaign='placement-foundations-v1';
+    const call=async (checkpoint,session,action,score=0,coins=0)=>(await db.query('select public.preppy_game_action($1,$2,$3,$4,$5,$6) as value',
+      [campaign,`${campaign}:${checkpoint}`,session,action,score,coins])).rows[0].value;
+    await assert.rejects(call('missing','bad','start'),/Unknown checkpoint/);
+    await assert.rejects(call('finalBoss','bad','complete'),/No active session/);
+    assert.equal((await call('finalBoss','cancel-me','start')).status,'active');
+    assert.equal((await call('finalBoss','cancel-me','cancel')).status,'cancelled');
+    await assert.rejects(call('finalBoss','cancel-me','complete'),/No active session/);
+    await call('finalBoss','old','start');await call('finalBoss','new','start');
+    await assert.rejects(call('finalBoss','old','complete'),/No active session/);
+    await assert.rejects(call('finalBoss','new','complete',-1),/Invalid game result/);
+    const first=await call('finalBoss','new','complete',200,3);
+    assert.equal(first.xpAwardedNow,100);assert.equal(first.progress.xp,2725);
+    const duplicate=await call('finalBoss','new','complete',200,3);
+    assert.equal(duplicate.xpAwardedNow,0);assert.equal(duplicate.progress.xp,2725);
+    assert.equal((await call('finalBoss','another','skip')).xpAwardedNow,0);
+    await assert.rejects(db.query("update public.preppy_game_sessions set score=999"),/permission denied/);
+    await login(user2);
+    await assert.rejects(call('break1','locked','start'),/Checkpoint locked/);
+    // Seed a valid first-five-nodes snapshot for the second identity, as a fixture.
+    await db.exec('reset role');
+    await db.query(`insert into public.preppy_user_progress(user_id,campaign_id,campaign_version,skills,node_results,xp)
+      select $1,campaign_id,campaign_version,skills,
+        (select jsonb_object_agg(key,value) from jsonb_each(node_results) where key <= 'placement-foundations-v1:node-05'),750
+      from public.preppy_user_progress where user_id=$2 and campaign_id=$3`,[user2,user1,campaign]);
+    await login(user2);
+    await assert.rejects(call('break1','new','start'),/Session identity mismatch/);
+    const skipped=await call('break1','skip-test','skip');
+    assert.equal(skipped.status,'skipped');assert.equal(skipped.progress.xp,750);assert.equal(skipped.xpAwardedNow,0);
+    assert.equal((await call('break1','skip-test','complete')).xpAwardedNow,0);
+    assert.equal((await db.query('select * from public.preppy_game_sessions where user_id=$1',[user1])).rows.length,0);
+    await db.exec('reset role');
+    await db.query('delete from public.preppy_user_progress where user_id=$1 and campaign_id=$2',[user2,campaign]);
+    await login(user1);
   });
 
   await t.test('authenticated user cannot directly mutate rows or impersonate another user', async () => {

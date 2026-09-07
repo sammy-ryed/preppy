@@ -22,7 +22,7 @@ company-specific or previously asked interview questions.
 The flow is explanation -> solved example -> quiz/feedback for aptitude, followed
 by explanation -> visualization -> solved example -> quiz/feedback for DSA, then
 combined result and save. Visualization next/previous/reset controls change pure
-state only; no renderer, UI, animation, or autoplay was added.
+state only. The quest screen now renders these steps with manual controls.
 
 | Node | Aptitude | DSA / visualization | Difficulty | Base XP |
 | --- | --- | --- | --- | --- |
@@ -64,13 +64,13 @@ const controller = createQuestController(
 ```
 
 The application provider, onboarding catalog validation, and backend factory
-must all use the same catalog when this is activated. They deliberately still
-use the existing starter catalog today, so no current screen changes behavior.
+all use `data/appContent.ts`, which combines this default curriculum with legacy
+starter content for existing profiles.
 Do not plug the new controller into an old-catalog save service.
 
 Existing campaign/version IDs were preserved; no user profile or progress was
 reset, migrated, or written to hosted Supabase. Existing users will need an
-explicit campaign selection/migration decision during UI integration. Do not
+selection of the full campaign, now performed when opening the map. Do not
 silently mark old starter completions as completion of this new curriculum.
 
 ## Scores, skills, and progression

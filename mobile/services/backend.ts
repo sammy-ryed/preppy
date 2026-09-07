@@ -1,4 +1,4 @@
-import { learningContent } from '../data/learningContent';
+import { appContent as learningContent } from '../data/appContent';
 import { getSupabase } from '../lib/supabase';
 import { createSupabaseProgressRepository } from '../repositories/supabaseProgressRepository';
 import { createLearningService } from './learningService';

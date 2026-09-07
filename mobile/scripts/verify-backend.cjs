@@ -53,6 +53,14 @@ async function main() {
   });
   assert.equal(probe.error?.code, '42501');
   pass('progress RPC exists and rejects unauthenticated access');
+  stage = 'unauthenticated game RPC protection';
+  const gameProbe = await publicClient.rpc('preppy_game_action', {
+    p_campaign_id: 'placement-foundations-v1',
+    p_checkpoint_id: 'placement-foundations-v1:break1',
+    p_session_id: 'read-only-probe', p_action: 'start',
+  });
+  assert.equal(gameProbe.error?.code, '42501');
+  pass('game RPC exists and rejects unauthenticated access');
   stage = 'anonymous sign-in setting (enable it in Supabase Authentication)';
   assert.equal(settings.external?.anonymous_users, true);
   pass('anonymous sign-in enabled');

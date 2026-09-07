@@ -3,11 +3,10 @@
 **Product update:** every educational node will contain aptitude explanation,
 solved example and quiz, followed by DSA explanation, visualization, solved
 example and quiz, then combined results. See [the revised plan](combined-node-plan.md).
-The section-aware engine is now implemented as an opt-in catalog; see the
-[combined quest API](combined-quest-engine.md). It is not active in the UI yet.
-Map work can proceed with the existing progress hook and opaque node IDs.
-The [full 15-node curriculum and visualization state contract](curriculum.md) is
-also available as an opt-in backend catalog. It is not yet enabled in screens.
+The full 15-node curriculum is now the default for new onboarding. The map routes
+real node IDs into the section-aware quest screen, including visualization and
+saved results. See [integration status and team setup](integration-checkpoint.md)
+and the [combined quest API](combined-quest-engine.md).
 
 Valli owns presentation; Figma is the visual source of truth. Use native React
 Native components and styles. Screens consume hooks, without implementing scoring
@@ -43,10 +42,11 @@ if (accepted) router.replace('/map'); // router from expo-router
 
 Levels: `beginner | intermediate | advanced`. Name is trimmed and must be 1-60
 characters. Submit a `campaignId` from `campaigns`, not a `companyId`. Only the
-2-node `starter` campaign (version 2) is configured, with no company assignment.
+15-node `placement-foundations-v1` campaign is the default; the 2-node `starter`
+campaign (version 2) remains available for existing progress.
 Disable submission while `submitting`; render `error` on failure. Name/preferences
 persist in Supabase Auth metadata after progress initialization. Retrying preserves
-existing XP/mastery. The full company curriculum is not implemented.
+existing XP/mastery. The curriculum is shared, not company-specific.
 
 ### Map and skills
 
@@ -101,9 +101,9 @@ Do not use that preview hook for the saved journey.
 
 ## Remaining boundaries
 
-- Visualization phases, achievements, `useGameSession`, and game rewards are not
-  implemented. Do not import speculative exports or display fake awards.
-- Future 15-node campaigns/checkpoints belong in content configuration, not UI.
+- Visualization phases and `useGameSession` are implemented. Game rewards and
+  checkpoint skips use the game-session SQL migration. Achievements remain pending.
+- Campaigns/checkpoints belong in content configuration, not UI.
 - Question timing currently uses the neutral untimed scoring fallback.
 - Bimbo assets/motion remain presentation-owned; domain services have no asset paths.
 - Keep routes thin and preserve parameter names and the provider. Reusable visuals

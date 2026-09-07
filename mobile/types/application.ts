@@ -43,6 +43,7 @@ export interface LearningApplication {
   readonly bootstrap: () => Promise<void>;
   readonly submitOnboarding: (profile: OnboardingProfile) => Promise<boolean>;
   readonly refresh: () => Promise<void>;
+  readonly selectCampaign: (campaignId: string) => Promise<boolean>;
   readonly getQuest: (nodeId: string) => LearningQuestHandle | null;
   readonly saveQuest: (handle: LearningQuestHandle) => Promise<SaveOutcome | null>;
 }
