@@ -104,8 +104,41 @@ or a cheat-resistant public leaderboard.
 
 ## What is verified
 
-Final local checks: 66 tests passed; TypeScript, ESLint, Expo dependency alignment,
-and Android/iOS/web production exports all passed. Hosted Supabase was not contacted.
+### Hosted verification: 2026-09-07
+
+The configured hosted project was reached with its publishable key. Anonymous
+sign-ins were initially disabled; after enabling them, the live smoke test passed:
+Auth profile metadata, initialized progress, both real quest saves (150 then 300
+XP), arrays mastery (50 then 64), next-node unlock, duplicate retry with zero
+additional XP, restoration in a new SDK client, and non-resetting initialization.
+A second user was denied access by both the read RPC and table RLS.
+
+Run from `mobile/`:
+
+```powershell
+npm.cmd run verify:backend
+npm.cmd run verify:backend -- --write
+```
+
+The default performs read-only configuration/auth-setting/RPC checks. `--write`
+creates two anonymous smoke-test users, tagged `preppy_smoke_test: true` in Auth
+metadata, and one user's test progress. These records remain in the project;
+the script does not delete users, persist session tokens to disk, or print keys.
+Each write run creates new identities. It never uses the phone's current session.
+No service-role key is needed. The existing hosted schema supported all tested
+operations; no migration was applied by the agent during this verification.
+
+New-client restoration verifies the hosted API, not native AsyncStorage or app
+restart behavior on a device. Physical-device UI and background/resume checks
+remain outstanding. The script uses the real learning service/repository/controller;
+it does not mount React or exercise the provider's Expo auth adapter.
+
+### Earlier local verification
+
+Before the UI merge: 66 tests passed; TypeScript, ESLint, Expo dependency alignment,
+and Android/iOS/web production exports all passed. The merged onboarding UI has
+six known animation lint errors assigned to Valli; those are separate from the
+hosted smoke test above.
 
 - Unit tests: first save, mastery/XP, node unlock, repeat initialization, replay,
   concurrent duplicates, lost responses, failed writes, bounded conflict retries,
@@ -116,8 +149,8 @@ and Android/iOS/web production exports all passed. Hosted Supabase was not conta
   PGlite is a single-connection database; production multi-connection contention
   still needs hosted verification. Supabase's auth schema/claims are simulated only
   in the test setup; these tests do not exercise hosted Auth or HTTP/PostgREST.
-- Native/web auth startup, session restoration on a phone, and live Supabase calls
-  cannot be verified until your URL/key and hosted migration are configured.
+- Native/web screen startup and session restoration on a phone still need device
+  verification. Hosted Supabase calls are now verified as described above.
 - Application tests cover onboarding retries, access gating, shared attempts,
   automatic-save orchestration, lost responses, and stale refresh protection.
 - Pending unsaved attempts are still in memory. An offline queue, visual save

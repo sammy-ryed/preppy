@@ -5,6 +5,10 @@ All screens remain temporary navigation placeholders. Domain scoring, the quest
 controller, Supabase save services, and connected hooks are implemented separately
 from presentation. The root layout mounts the shared learning provider.
 See [backend setup](docs/backend-setup.md) to connect your Supabase project.
+The hosted smoke test is available as `npm run verify:backend` (read-only) or
+`npm run verify:backend -- --write` (creates test users/progress). See the setup doc
+for its verified behavior and limits. [Ayush's handoff](docs/ayush-handoff.md)
+records the prototype review and the next Godot bridge contract.
 
 ## Run
 

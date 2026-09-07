@@ -35,6 +35,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "verify:backend": "tsc -p tsconfig.domain.json && node scripts/verify-backend.cjs",
     "test": "tsc -p tsconfig.domain.json && node --test tests/*.test.cjs",
     "lint": "eslint .",
     "check:dependencies": "expo install --check",
