@@ -6,6 +6,7 @@ import { evaluateAttempt } from '../domain/evaluateAnswer';
 import { getCampaignProgress } from '../domain/progression';
 import { calculateNodePerformance, calculateXP, seedMastery, updateMastery } from '../domain/scoring';
 import { validateContent } from '../domain/validateContent';
+import { sectionPerformances } from '../domain/sectionPerformance';
 
 export function toProgressSnapshot(progress: UserProgress): ProgressSnapshot {
   return { campaignId: progress.campaignId, campaignVersion: progress.campaignVersion,
@@ -85,6 +86,7 @@ export function createLearningService(content: ContentCatalog, repository: Progr
         questId: quest.id, questVersion: quest.version,
         questionVersions: Object.fromEntries(questions.map(question => [question.id, question.version])),
         answers, performance, persistence: 'saved', attemptId, completedAt: now().toISOString(), xpEarned, skillChanges,
+        ...(quest.sections ? { sectionPerformances: sectionPerformances(quest, answers) } : {}),
         unlockedNodeIds: after.nodes.filter(item => item.status === 'available' && before.nodes.find(previous => previous.id === item.id)?.status === 'locked').map(item => item.id),
         unlockedCheckpointIds: after.checkpoints.filter(item => item.status === 'available' && before.checkpoints.find(previous => previous.id === item.id)?.status === 'locked').map(item => item.id),
       };

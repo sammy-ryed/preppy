@@ -1,9 +1,7 @@
-export type SkillId =
-  | 'arrays'
-  | 'binary_search'
-  | 'sorting'
-  | 'quantitative_aptitude'
-  | 'logical_reasoning';
+export const DSA_SKILL_IDS = ['arrays', 'binary_search', 'sorting', 'two_pointers', 'sliding_window',
+  'hash_maps', 'stacks', 'graphs', 'linked_lists', 'backtracking', 'trees', 'dynamic_programming'] as const;
+export const APTITUDE_SKILL_IDS = ['quantitative_aptitude', 'logical_reasoning'] as const;
+export type SkillId = typeof DSA_SKILL_IDS[number] | typeof APTITUDE_SKILL_IDS[number];
 
 export type SelfAssessedLevel = 'beginner' | 'intermediate' | 'advanced';
 export type EvidenceKind = 'process' | 'outcome';
@@ -40,7 +38,25 @@ export interface Quest {
   readonly version: number;
   readonly lessonId: string;
   readonly questionIds: readonly string[];
+  // Absent for legacy quests. Combined quests retain flattened references for saves.
+  readonly sections?: readonly QuestSection[];
 }
+
+export interface QuestSection {
+  readonly subject: 'aptitude' | 'dsa';
+  readonly skillId: SkillId;
+  readonly lessonId: string;
+  readonly questionIds: readonly string[];
+  readonly visualization?: Visualization;
+}
+
+export type Visualization =
+  | { readonly type: 'array_traversal' | 'prefix_sums' | 'bubble_sort' | 'frequency_count' | 'linked_list_reverse' | 'subsets'; readonly values: readonly number[] }
+  | { readonly type: 'linear_search' | 'binary_search' | 'two_pointers' | 'bst_search'; readonly values: readonly number[]; readonly target: number }
+  | { readonly type: 'sliding_window'; readonly values: readonly number[]; readonly width: number }
+  | { readonly type: 'brackets'; readonly text: string }
+  | { readonly type: 'bfs'; readonly edges: readonly (readonly number[])[]; readonly start: number; readonly target: number }
+  | { readonly type: 'min_coins'; readonly values: readonly number[]; readonly amount: number };
 
 export type Requirement =
   | { readonly type: 'node_completed'; readonly nodeId: string }

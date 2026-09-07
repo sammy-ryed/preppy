@@ -4,6 +4,8 @@ import type { QuestAction, QuestController, QuestPhase, QuestSessionView } from 
 import { evaluateAnswer } from './evaluateAnswer';
 import { calculateNodePerformance } from './scoring';
 import { validateContent } from './validateContent';
+import { visualizationSteps } from './visualizations';
+import { sectionPerformances } from './sectionPerformance';
 
 // An in-memory attempt only. The caller must check durable node availability before launch.
 export function createQuestController(content: ContentCatalog, campaignId: string, nodeId: string): QuestController {
@@ -13,7 +15,10 @@ export function createQuestController(content: ContentCatalog, campaignId: strin
   const node = campaign?.nodes.find(item => item.id === nodeId);
   if (!campaign || !node) throw new Error(`Unknown quest node: ${campaignId}/${nodeId}`);
   const quest = content.quests.find(item => item.id === node.questId)!;
-  const lesson = content.lessons.find(item => item.id === quest.lessonId)!;
+  let sectionIndex = 0;
+  let visualizationIndex = 0;
+  const sections = quest.sections ?? [{ lessonId: quest.lessonId, questionIds: quest.questionIds }];
+  const visualizations = quest.sections?.map(section => section.visualization ? visualizationSteps(section.visualization) : null);
   const questions = quest.questionIds.map(id => content.questions.find(question => question.id === id)!);
   const listeners = new Set<() => void>();
   let phase: QuestPhase = 'lesson';
@@ -24,10 +29,21 @@ export function createQuestController(content: ContentCatalog, campaignId: strin
   const answers: EvaluatedAnswer[] = [];
 
   function buildView(): QuestSessionView {
+    const section = sections[sectionIndex]!;
+    const lesson = content.lessons.find(item => item.id === section.lessonId)!;
+    const steps = visualizations?.[sectionIndex];
     const current = questions[questionIndex]!;
     const showingQuestion = phase === 'question' || phase === 'feedback';
     return Object.freeze<QuestSessionView>({
       revision, phase, nodeId: node!.id, title: node!.title,
+      section: quest.sections && phase !== 'result' ? {
+        subject: quest.sections[sectionIndex]!.subject, number: sectionIndex + 1, count: sections.length,
+        questionCount: section.questionIds.length, answeredCount: answers.filter(answer => section.questionIds.includes(answer.questionId)).length,
+      } : null,
+      visualization: phase === 'visualization' && steps ? {
+        ...steps[visualizationIndex]!, step: visualizationIndex + 1,
+        stepCount: steps.length, canContinue: visualizationIndex === steps.length - 1,
+      } : null,
       lesson: phase === 'lesson' ? { title: lesson.title, introduction: lesson.introduction } : null,
       example: phase === 'example' ? lesson.workedExample : null,
       // Never expose answer keys, explanations, or unrequested hints in a question view.
@@ -45,6 +61,7 @@ export function createQuestController(content: ContentCatalog, campaignId: strin
         nodeId: node!.id, questId: quest.id, questVersion: quest.version,
         questionVersions: Object.fromEntries(questions.map(question => [question.id, question.version])),
         performance: calculateNodePerformance(answers), answers: Object.freeze([...answers]),
+        ...(quest.sections ? { sectionPerformances: sectionPerformances(quest, answers) } : {}),
         persistence: 'not_saved',
       } : null,
       error,
@@ -57,18 +74,34 @@ export function createQuestController(content: ContentCatalog, campaignId: strin
     if (action.revision !== revision || phase === 'result') return;
     const question = questions[questionIndex]!;
     if (action.type === 'next') {
-      if (phase === 'lesson') phase = 'example';
+      if (phase === 'lesson') phase = visualizations?.[sectionIndex] ? 'visualization' : 'example';
+      else if (phase === 'visualization') {
+        if (visualizationIndex !== visualizations![sectionIndex]!.length - 1) return;
+        phase = 'example';
+      }
       else if (phase === 'example') phase = 'question';
       else if (phase === 'feedback') {
         if (answers.length === questions.length) phase = 'result';
-        else { questionIndex += 1; hintUsed = false; phase = 'question'; }
+        else {
+          questionIndex += 1; hintUsed = false;
+          if (!sections[sectionIndex]!.questionIds.includes(questions[questionIndex]!.id)) {
+            sectionIndex += 1; visualizationIndex = 0; phase = 'lesson';
+          } else phase = 'question';
+        }
       } else return; // Cannot advance an unanswered question.
       error = null;
     } else if (action.type === 'hint') {
       if (phase !== 'question' || hintUsed || !question.hint) return;
       hintUsed = true;
       error = null;
-    } else {
+    } else if (action.type === 'visualization_next' || action.type === 'visualization_previous' || action.type === 'visualization_reset') {
+      if (phase !== 'visualization') return;
+      const last = visualizations![sectionIndex]!.length - 1;
+      const next = action.type === 'visualization_reset' ? 0 : action.type === 'visualization_next'
+        ? Math.min(last, visualizationIndex + 1) : Math.max(0, visualizationIndex - 1);
+      if (next === visualizationIndex) return;
+      visualizationIndex = next;
+    } else if (action.type === 'answer') {
       if (phase !== 'question' || action.questionId !== question.id) return;
       try {
         const answer = evaluateAnswer(question, {
