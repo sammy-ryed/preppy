@@ -12,9 +12,11 @@ import {
 } from '@expo-google-fonts/instrument-sans';
 import { View } from 'react-native';
 
+import { LearningProvider } from '../providers/LearningProvider';
+
 // Shared routing shell. Screen presentation belongs to Valli.
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     BalooTamma2_400Regular,
     BalooTamma2_700Bold,
     BalooTamma2_800ExtraBold,
@@ -22,13 +24,12 @@ export default function RootLayout() {
     InstrumentSans_600SemiBold,
   });
 
-  if (!fontsLoaded) {
-    // Render nothing until fonts are ready; keeps first paint clean.
+  if (!fontsLoaded && !fontError) {
     return <View style={{ flex: 1 }} />;
   }
 
   return (
-    <>
+    <LearningProvider>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
@@ -39,6 +40,6 @@ export default function RootLayout() {
         <Stack.Screen name="skills" />
         <Stack.Screen name="achievements" />
       </Stack>
-    </>
+    </LearningProvider>
   );
 }
