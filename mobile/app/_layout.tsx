@@ -31,7 +31,7 @@ export default function RootLayout() {
   return (
     <LearningProvider>
       <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, orientation: 'portrait' }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="map" />
