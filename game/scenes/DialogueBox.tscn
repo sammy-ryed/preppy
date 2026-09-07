@@ -1,0 +1,44 @@
+[gd_scene format=3 uid="uid://ds3iwgkst5f4d"]
+
+[ext_resource type="Script" uid="uid://bppq3cg2mumg1" path="res://scenes/dialogue_box.gd" id="1_r2og1"]
+
+[sub_resource type="Gradient" id="Gradient_r2og1"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_pe8jb"]
+gradient = SubResource("Gradient_r2og1")
+
+[sub_resource type="Gradient" id="Gradient_1n5wf"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_giuoe"]
+gradient = SubResource("Gradient_1n5wf")
+
+[node name="Control" type="Control" unique_id=2007337691]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_r2og1")
+
+[node name="Panel" type="Panel" parent="." unique_id=1965628513]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Label" type="Label" parent="Panel" unique_id=1059706639]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="TextureProgressBar" type="TextureProgressBar" parent="Panel" unique_id=1405557858]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture_under = SubResource("GradientTexture2D_pe8jb")
+texture_progress = SubResource("GradientTexture2D_giuoe")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel" unique_id=1660023693]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
