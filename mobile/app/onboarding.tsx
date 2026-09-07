@@ -1,14 +1,17 @@
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import Animated, {
+  runOnUI,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -16,6 +19,8 @@ import Animated, {
   withSpring,
   Easing,
 } from 'react-native-reanimated';
+import { useOnboarding } from '../hooks/useOnboarding';
+import type { SelfAssessedLevel } from '../types/content';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -90,29 +95,17 @@ function Cloud({ config }: { config: CloudConfig }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Questions
+// Step definitions (driven by hook campaigns for step 3)
 // ─────────────────────────────────────────────────────────────
-type Question = {
-  question: string;
-  options: string[];
-  subline?: string;
-};
+type StepId = 'aptitude' | 'dsa' | 'campaign';
 
-const QUESTIONS: Question[] = [
-  {
-    question: "How's your aptitude?",
-    options: ['Beginner', 'Intermediate', 'Advanced'],
-  },
-  {
-    question: "How's your DSA?",
-    options: ['Beginner', 'Intermediate', 'Advanced'],
-  },
-  {
-    question: 'What company?',
-    options: ['Google', 'OpenAI', 'JPMorgan'],
-    subline: 'more to come...',
-  },
-];
+const STEPS: StepId[] = ['aptitude', 'dsa', 'campaign'];
+const LEVEL_OPTIONS: SelfAssessedLevel[] = ['beginner', 'intermediate', 'advanced'];
+const LEVEL_LABELS: Record<SelfAssessedLevel, string> = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+};
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -123,10 +116,12 @@ function OptionChip({
   label,
   selected,
   onPress,
+  disabled,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
+  disabled?: boolean;
 }) {
   const scale = useSharedValue(1);
 
@@ -134,14 +129,28 @@ function OptionChip({
     transform: [{ scale: scale.value }],
   }));
 
+  const handlePressIn = () => {
+    runOnUI(() => {
+      'worklet';
+      scale.value = withSpring(0.95, { damping: 18, stiffness: 300 });
+    })();
+  };
+
+  const handlePressOut = () => {
+    runOnUI(() => {
+      'worklet';
+      scale.value = withSpring(1, { damping: 18, stiffness: 300 });
+    })();
+  };
+
   return (
     <AnimatedPressable
       style={[styles.optionChip, selected && styles.optionChipSelected, chipStyle]}
-      onPress={onPress}
-      onPressIn={() => { scale.value = withSpring(0.95, { damping: 18, stiffness: 300 }); }}
-      onPressOut={() => { scale.value = withSpring(1, { damping: 18, stiffness: 300 }); }}
+      onPress={disabled ? undefined : onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityState={{ selected, disabled }}
     >
       <View style={[styles.optionDot, selected && styles.optionDotSelected]} />
       <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
@@ -172,15 +181,27 @@ function NavButton({
     opacity: disabled ? 0.35 : 1,
   }));
 
+  const handlePressIn = () => {
+    if (disabled) return;
+    runOnUI(() => {
+      'worklet';
+      scale.value = withSpring(0.92, { damping: 15, stiffness: 300 });
+    })();
+  };
+
+  const handlePressOut = () => {
+    if (disabled) return;
+    runOnUI(() => {
+      'worklet';
+      scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    })();
+  };
+
   return (
     <AnimatedPressable
       onPress={disabled ? undefined : onPress}
-      onPressIn={() => {
-        if (!disabled) scale.value = withSpring(0.92, { damping: 15, stiffness: 300 });
-      }}
-      onPressOut={() => {
-        if (!disabled) scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-      }}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       style={[
         styles.navBtn,
         variant === 'next' ? styles.navBtnNext : styles.navBtnBack,
@@ -201,11 +222,16 @@ function NavButton({
 // ─────────────────────────────────────────────────────────────
 export default function OnboardingScreen() {
   const router = useRouter();
+  const onboarding = useOnboarding();
+
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<(string | null)[]>([null, null, null]);
+  const [name, setName]                       = useState('');
+  const [aptitude, setAptitude]               = useState<SelfAssessedLevel | null>(null);
+  const [dsa, setDsa]                         = useState<SelfAssessedLevel | null>(null);
+  const [campaignId, setCampaignId]           = useState<string | null>(null);
 
   const cardTranslateX = useSharedValue(0);
-  const cardOpacity = useSharedValue(1);
+  const cardOpacity    = useSharedValue(1);
 
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: cardTranslateX.value }],
@@ -216,30 +242,52 @@ export default function OnboardingScreen() {
     const outDir = direction === 'forward' ? -50 : 50;
     const inDir  = direction === 'forward' ?  50 : -50;
 
-    // Slide + fade out
-    cardTranslateX.value = withTiming(outDir, { duration: 160, easing: Easing.out(Easing.quad) });
-    cardOpacity.value    = withTiming(0, { duration: 160 });
+    // Slide + fade out — worklet-safe assignments via runOnUI
+    runOnUI(() => {
+      'worklet';
+      cardTranslateX.value = withTiming(outDir, { duration: 160, easing: Easing.out(Easing.quad) });
+      cardOpacity.value    = withTiming(0, { duration: 160 });
+    })();
 
     setTimeout(() => {
-      // Jump to opposite side, update content, then slide in
-      cardTranslateX.value = inDir;
       callback();
-      cardTranslateX.value = withSpring(0, { damping: 22, stiffness: 220 });
-      cardOpacity.value    = withTiming(1, { duration: 200 });
+      runOnUI(() => {
+        'worklet';
+        cardTranslateX.value = inDir;
+        cardTranslateX.value = withSpring(0, { damping: 22, stiffness: 220 });
+        cardOpacity.value    = withTiming(1, { duration: 200 });
+      })();
     }, 170);
   };
 
-  const handleSelect = (option: string) => {
-    const next = [...answers];
-    next[step] = option;
-    setAnswers(next);
-  };
+  // Default campaign when campaigns load and none selected yet
+  useEffect(() => {
+    if (onboarding.campaigns.length > 0) {
+      setCampaignId((prev) => prev ?? onboarding.campaigns[0].id);
+    }
+  }, [onboarding.campaigns]);
 
-  const handleNext = () => {
-    if (step < 2) {
+  // If we're already onboarded, push to map
+  useEffect(() => {
+    if (onboarding.status === 'ready') {
+      router.replace('/map');
+    }
+  }, [onboarding.status, router]);
+
+  const handleNext = async () => {
+    if (step < STEPS.length - 1) {
       animateTransition('forward', () => setStep((s) => s + 1));
     } else {
-      router.replace('/map');
+      // Final step — submit
+      const trimmedName = name.trim();
+      if (!aptitude || !dsa || !campaignId || trimmedName.length === 0) return;
+      const accepted = await onboarding.submit({
+        name: trimmedName,
+        aptitudeLevel: aptitude,
+        dsaLevel: dsa,
+        campaignId,
+      });
+      if (accepted) router.replace('/map');
     }
   };
 
@@ -249,9 +297,41 @@ export default function OnboardingScreen() {
     }
   };
 
-  const q = QUESTIONS[step];
-  const selected = answers[step];
-  const canProceed = selected !== null;
+  // Loading / error gate (before onboarding questions are shown)
+  if (onboarding.loading) {
+    return (
+      <View style={[styles.root, styles.centred]}>
+        {CLOUDS.map((c) => <Cloud key={c.id} config={c} />)}
+        <ActivityIndicator size="large" color="#FFFFFF" />
+        <Text style={styles.gateText}>Loading…</Text>
+      </View>
+    );
+  }
+
+  if (onboarding.status === 'error' && !onboarding.submitting) {
+    return (
+      <View style={[styles.root, styles.centred]}>
+        {CLOUDS.map((c) => <Cloud key={c.id} config={c} />)}
+        <Text style={styles.errorText}>{onboarding.error ?? 'Something went wrong.'}</Text>
+        <Pressable style={styles.retryBtn} onPress={onboarding.retry}>
+          <Text style={styles.retryBtnText}>Retry</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const currentStep = STEPS[step];
+
+  // Per-step canProceed logic
+  const canProceed = (() => {
+    if (currentStep === 'aptitude') return aptitude !== null;
+    if (currentStep === 'dsa') return dsa !== null;
+    // campaign step: need name + a campaign selected
+    return name.trim().length > 0 && campaignId !== null;
+  })();
+
+  const isLastStep = step === STEPS.length - 1;
+  const isSubmitting = onboarding.submitting;
 
   return (
     <View style={styles.root}>
@@ -262,7 +342,7 @@ export default function OnboardingScreen() {
 
       {/* Progress bars */}
       <View style={styles.progressRow}>
-        {QUESTIONS.map((_, i) => (
+        {STEPS.map((_, i) => (
           <View
             key={i}
             style={[
@@ -279,11 +359,11 @@ export default function OnboardingScreen() {
 
       {/* Nav buttons */}
       <View style={styles.navRow}>
-        <NavButton label="← Back" onPress={handleBack} disabled={step === 0} variant="back" />
+        <NavButton label="← Back" onPress={handleBack} disabled={step === 0 || isSubmitting} variant="back" />
         <NavButton
-          label={step === 2 ? 'Done ✓' : 'Next →'}
+          label={isSubmitting ? 'Saving…' : isLastStep ? 'Done ✓' : 'Next →'}
           onPress={handleNext}
-          disabled={!canProceed}
+          disabled={!canProceed || isSubmitting}
           variant="next"
         />
       </View>
@@ -291,22 +371,79 @@ export default function OnboardingScreen() {
       {/* Question card */}
       <View style={styles.cardContainer}>
         <Animated.View style={[styles.card, cardStyle]}>
-          <Text style={styles.stepLabel}>{step + 1} of {QUESTIONS.length}</Text>
-          <Text style={styles.questionText}>{q.question}</Text>
+          <Text style={styles.stepLabel}>{step + 1} of {STEPS.length}</Text>
 
-          <View style={styles.optionsContainer}>
-            {q.options.map((opt) => (
-              <OptionChip
-                key={opt}
-                label={opt}
-                selected={selected === opt}
-                onPress={() => handleSelect(opt)}
+          {currentStep === 'aptitude' && (
+            <>
+              <Text style={styles.questionText}>How&apos;s your aptitude?</Text>
+              <View style={styles.optionsContainer}>
+                {LEVEL_OPTIONS.map((lvl) => (
+                  <OptionChip
+                    key={lvl}
+                    label={LEVEL_LABELS[lvl]}
+                    selected={aptitude === lvl}
+                    onPress={() => setAptitude(lvl)}
+                    disabled={isSubmitting}
+                  />
+                ))}
+              </View>
+            </>
+          )}
+
+          {currentStep === 'dsa' && (
+            <>
+              <Text style={styles.questionText}>How&apos;s your DSA?</Text>
+              <View style={styles.optionsContainer}>
+                {LEVEL_OPTIONS.map((lvl) => (
+                  <OptionChip
+                    key={lvl}
+                    label={LEVEL_LABELS[lvl]}
+                    selected={dsa === lvl}
+                    onPress={() => setDsa(lvl)}
+                    disabled={isSubmitting}
+                  />
+                ))}
+              </View>
+            </>
+          )}
+
+          {currentStep === 'campaign' && (
+            <>
+              <Text style={styles.questionText}>What&apos;s your name?</Text>
+              <TextInput
+                style={styles.nameInput}
+                placeholder="Enter your name"
+                placeholderTextColor="rgba(255,255,255,0.45)"
+                value={name}
+                onChangeText={setName}
+                maxLength={60}
+                autoCapitalize="words"
+                editable={!isSubmitting}
               />
-            ))}
-          </View>
+              <Text style={[styles.questionText, { marginTop: 20 }]}>Pick your path</Text>
+              <View style={styles.optionsContainer}>
+                {onboarding.campaigns.map((c) => (
+                  <OptionChip
+                    key={c.id}
+                    label={c.title ?? c.id}
+                    selected={campaignId === c.id}
+                    onPress={() => setCampaignId(c.id)}
+                    disabled={isSubmitting}
+                  />
+                ))}
+                <Text style={styles.subline}>more campaigns coming soon…</Text>
+              </View>
+            </>
+          )}
 
-          {q.subline && (
-            <Text style={styles.subline}>{q.subline}</Text>
+          {/* Saving error with retry */}
+          {onboarding.error && onboarding.status === 'error' && (
+            <View style={styles.errorRow}>
+              <Text style={styles.inlineError}>{onboarding.error}</Text>
+              <Pressable onPress={onboarding.retry}>
+                <Text style={styles.inlineRetry}>Try again</Text>
+              </Pressable>
+            </View>
           )}
         </Animated.View>
       </View>
@@ -325,8 +462,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: SKY_BLUE,
   },
+  centred: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
   cloud: {
     position: 'absolute',
+  },
+
+  // Gate screens
+  gateText: {
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  errorText: {
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 15,
+    color: '#FFD0D0',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  retryBtn: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  retryBtnText: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 15,
+    color: '#FFFFFF',
   },
 
   // Progress bars
@@ -425,11 +594,25 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: '#FFFFFF',
     lineHeight: 36,
-    marginBottom: 26,
+    marginBottom: 16,
     letterSpacing: -0.2,
     textShadowColor: 'rgba(10,40,100,0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+  },
+
+  // Name input
+  nameInput: {
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 18,
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 4,
   },
 
   // Options
@@ -483,9 +666,28 @@ const styles = StyleSheet.create({
     fontFamily: 'InstrumentSans_400Regular',
     fontSize: 13,
     color: 'rgba(255,255,255,0.48)',
-    marginTop: 16,
+    marginTop: 4,
     letterSpacing: 0.3,
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+
+  // Inline error
+  errorRow: {
+    marginTop: 16,
+    gap: 6,
+    alignItems: 'center',
+  },
+  inlineError: {
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 13,
+    color: '#FFD0D0',
+    textAlign: 'center',
+  },
+  inlineRetry: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 13,
+    color: '#FFFFFF',
+    textDecorationLine: 'underline',
   },
 });
