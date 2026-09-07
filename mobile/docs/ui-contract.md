@@ -1,5 +1,11 @@
 # PREPPY UI integration contract
 
+**Product update:** every educational node will contain aptitude explanation,
+solved example and quiz, followed by DSA explanation, visualization, solved
+example and quiz, then combined results. See [the revised plan](combined-node-plan.md).
+The section-aware engine is not implemented yet; the API below describes current
+exports. Map work can proceed with the existing progress hook and opaque node IDs.
+
 Valli owns presentation; Figma is the visual source of truth. Use native React
 Native components and styles. Screens consume hooks, without implementing scoring
 or calling Supabase directly. Preserve `LearningProvider` in `app/_layout.tsx`.
