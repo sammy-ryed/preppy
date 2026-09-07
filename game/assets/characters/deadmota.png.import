@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c4mcnsd4lr01m"
-path="res://.godot/imported/lodu_left_right.png-17b9ed8bd5c7875f347f53468217c395.ctex"
+uid="uid://wcydttl1arid"
+path="res://.godot/imported/deadmota.png-c26dfd3641204cc01aedaffb583709ca.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/lodu_left_right.png"
-dest_files=["res://.godot/imported/lodu_left_right.png-17b9ed8bd5c7875f347f53468217c395.ctex"]
+source_file="res://assets/characters/deadmota.png"
+dest_files=["res://.godot/imported/deadmota.png-c26dfd3641204cc01aedaffb583709ca.ctex"]
 
 [params]
 

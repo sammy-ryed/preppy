@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://vqq6agyfm75r"
-path="res://.godot/imported/lodu_back.png-d620f5c9ece0e67c1ebc9180147ac275.ctex"
+uid="uid://b5o3kix86t7ky"
+path="res://.godot/imported/lodu_shot.png-99f4e5b338961a646777cee8bac93b5a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/lodu_back.png"
-dest_files=["res://.godot/imported/lodu_back.png-d620f5c9ece0e67c1ebc9180147ac275.ctex"]
+source_file="res://assets/characters/lodu_shot.png"
+dest_files=["res://.godot/imported/lodu_shot.png-99f4e5b338961a646777cee8bac93b5a.ctex"]
 
 [params]
 
