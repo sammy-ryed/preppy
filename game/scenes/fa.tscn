@@ -3,8 +3,10 @@
 [ext_resource type="Script" uid="uid://b6j2lay1be8e6" path="res://scripts/fa.gd" id="1_8ekqr"]
 [ext_resource type="Texture2D" uid="uid://bhgoujfdwowvx" path="res://assets/characters/Julia-Idle.png" id="1_8jxas"]
 [ext_resource type="Texture2D" uid="uid://bflch8fg3tsfe" path="res://assets/characters/Julia_walk_Foward.png" id="2_8ekqr"]
+[ext_resource type="Texture2D" uid="uid://b5s0im0tjnidv" path="res://assets/characters/eyeball.png" id="3_40xkx"]
 [ext_resource type="Texture2D" uid="uid://on4b7xht1trj" path="res://assets/characters/Julia_walk_Left.png" id="3_gdalr"]
 [ext_resource type="Texture2D" uid="uid://c84n387ughvu6" path="res://assets/characters/Julia_walk_Up.png" id="4_hgdqq"]
+[ext_resource type="Texture2D" uid="uid://byvk0iocdxo1d" path="res://assets/characters/runnning mota.png" id="5_11lbi"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_40xkx"]
 atlas = ExtResource("1_8jxas")
@@ -21,6 +23,26 @@ region = Rect2(64, 0, 32, 32)
 [sub_resource type="AtlasTexture" id="AtlasTexture_i47bl"]
 atlas = ExtResource("1_8jxas")
 region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1b00p"]
+atlas = ExtResource("3_40xkx")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_c3v4u"]
+atlas = ExtResource("3_40xkx")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_whbkr"]
+atlas = ExtResource("5_11lbi")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_esei4"]
+atlas = ExtResource("5_11lbi")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uhvxq"]
+atlas = ExtResource("5_11lbi")
+region = Rect2(64, 0, 32, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_kwkha"]
 atlas = ExtResource("2_8ekqr")
@@ -91,6 +113,36 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": SubResource("AtlasTexture_1b00p")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_c3v4u")
+}],
+"loop": 1,
+"name": &"mota",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_whbkr")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_esei4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_uhvxq")
+}],
+"loop": 1,
+"name": &"mota_walk",
+"speed": 5.0
+}, {
+"frames": [],
+"loop": 1,
+"name": &"new_animation",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": SubResource("AtlasTexture_kwkha")
 }, {
 "duration": 1.0,
@@ -145,7 +197,7 @@ animations = [{
 radius = 7.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_gwwm0"]
-radius = 50.0
+radius = 156.11534
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_a12xk"]
 radius = 25.0
@@ -155,9 +207,8 @@ script = ExtResource("1_8ekqr")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=861195125]
 sprite_frames = SubResource("SpriteFrames_gwwm0")
-animation = &"idle"
+animation = &"new_animation"
 autoplay = "idle"
-frame_progress = 0.27339557
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1597525113]
 shape = SubResource("CapsuleShape2D_a12xk")
@@ -171,3 +222,11 @@ shape = SubResource("CircleShape2D_gwwm0")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="AttackZone" unique_id=1644609320]
 shape = SubResource("CircleShape2D_a12xk")
+
+[node name="InteractionPrompt" type="Label" parent="." unique_id=1988941810]
+offset_left = -29.0
+offset_top = -40.0
+offset_right = 35.0
+offset_bottom = -17.0
+text = "[ E ] Talk"
+horizontal_alignment = 1
