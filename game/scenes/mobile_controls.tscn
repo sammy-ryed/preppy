@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://8g6it6hnnikg"]
+
+[ext_resource type="Texture2D" uid="uid://ca2sdf7q06rtv" path="res://assets/characters/Sprite-0005.png" id="1_4rjyr"]
+[ext_resource type="Texture2D" uid="uid://daoaekg0pfq1w" path="res://assets/characters/Sprite-0006.png" id="2_y1te1"]
+[ext_resource type="Texture2D" uid="uid://dv4v0l23s0rjf" path="res://assets/characters/Sprite-0004.png" id="3_puaky"]
+[ext_resource type="Texture2D" uid="uid://5fud3e71l5wr" path="res://assets/characters/Sprite-0003.png" id="4_yr8f1"]
+
+[node name="MobileControls" type="CanvasLayer" unique_id=864617941]
+
+[node name="up" type="TouchScreenButton" parent="." unique_id=353376567]
+position = Vector2(184, 334)
+scale = Vector2(4, 4)
+texture_normal = ExtResource("1_4rjyr")
+action = "ui_up"
+
+[node name="down" type="TouchScreenButton" parent="." unique_id=813426922]
+position = Vector2(182, 528)
+scale = Vector2(4, 4)
+texture_normal = ExtResource("2_y1te1")
+action = "ui_down"
+
+[node name="left" type="TouchScreenButton" parent="." unique_id=794791162]
+position = Vector2(106, 430)
+scale = Vector2(4, 4)
+texture_normal = ExtResource("3_puaky")
+action = "ui_left"
+
+[node name="right" type="TouchScreenButton" parent="." unique_id=1832079168]
+position = Vector2(269, 430)
+scale = Vector2(4, 4)
+texture_normal = ExtResource("4_yr8f1")
+action = "ui_right"
