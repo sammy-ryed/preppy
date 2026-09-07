@@ -1,5 +1,40 @@
 # Godot prototype review and bridge contract v1
 
+## Android startup compatibility fix
+
+The exported Emscripten code checks `Safari/` plus `Version/` without excluding
+Chromium. Android WebView includes `Version/4.0 Chrome/152... Mobile Safari/...`,
+so startup incorrectly rejects it as Safari older than 15.2. This was confirmed
+by the phone's captured initialization error and the generated JavaScript.
+Mobile now reads the actual Android WebView user-agent and removes only its
+`Version/` compatibility token before loading the game. Chrome's real version
+and real Safari checks are preserved. No hosted export changes are needed for
+this mobile workaround. Keep this fix when merging game/UI branches.
+
+## Fullscreen and Return to map update
+
+The mobile game route now requests landscape orientation, hides system bars and
+uses an edge-to-edge WebView while playing. Other screens stay portrait. A small
+native Return to map control is available until the Godot HUD button is ready.
+
+Ayush: add an always-visible touch-friendly Return to map/Home button to the HUD
+(not underneath the initially hidden WinScreen). Connect its pressed signal to
+this handler in the HUD script for the current `fa_lvl.tscn` scene:
+
+```gdscript
+func _on_return_to_map_pressed() -> void:
+    get_tree().current_scene.get_node("CanvasLayer3/WinScreen")._send_preppy_event("GAME_EXIT")
+```
+
+Keep that HUD usable while paused/game-over too. `GAME_EXIT` must use the launch
+sessionId/stage via the existing helper; never emit GAME_COMPLETE merely for
+leaving. Expo cancels the session, preserves the checkpoint as available and
+returns to the map after confirmation. Keep GAME_COMPLETE for actual wins.
+Standalone browser play needs a local menu fallback when ReactNativeWebView is
+absent. Ensure the web export canvas fills the landscape viewport, with no
+HTML margins, page scrolling or fixed portrait sizing. Re-export and redeploy
+the complete web build after changing the HUD.
+
 **September 8 update:** the Expo receiver, SQL session persistence and source win
 bridge are now implemented. See [current integration handoff](integration-checkpoint.md).
 The review below describes the earlier prototype; touch/combat/dialogue fixes

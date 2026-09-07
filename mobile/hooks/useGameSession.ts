@@ -57,6 +57,6 @@ export function useGameSession(checkpointId: string) {
   return {checkpoint,loading:progress.loading,error:error??progress.error,status,xp,uri,reloadKey,
     launch:()=>uri?action('start'):Promise.resolve(),skip:()=>checkpoint?.canSkip?action('skip'):Promise.resolve(),
     cancel:()=>action('cancel'),receive,retry,
-    loadError:()=>setError('The game could not load. Check its URL and connection, then retry or exit.'),
+    loadError:(message?:string)=>setError(message || 'The game could not load. Check its URL and connection, then retry or exit.'),
   };
 }
