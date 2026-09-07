@@ -35,6 +35,9 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="map" />
+        <Stack.Screen name="home" />
+        <Stack.Screen name="badges" />
+        <Stack.Screen name="level/[levelNum]" />
         <Stack.Screen name="quest/[nodeId]" />
         <Stack.Screen name="game/[checkpointId]" />
         <Stack.Screen name="skills" />
