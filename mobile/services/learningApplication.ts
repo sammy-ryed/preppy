@@ -73,8 +73,22 @@ export function createLearningApplication(
       publish({ error: null });
     } catch (error) { publish({ error: message(error) }); }
   }
+  async function selectCampaign(campaignId: string) {
+    if (!backend || !state.profile || state.status !== 'ready' || state.submittingOnboarding || pendingSaves.size) return false;
+    const profile = { ...state.profile, campaignId };
+    publish({ submittingOnboarding: true, error: null });
+    try {
+      validateOnboarding(profile, content);
+      const progress = await backend.learningService.initializeProgress({ userId: backend.userId, campaignId }, profile);
+      await backend.saveProfile(profile);
+      quests.clear();
+      publish({ profile, progress, saves: {}, error: null });
+      return true;
+    } catch (error) { publish({ error: message(error) }); return false; }
+    finally { publish({ submittingOnboarding: false }); }
+  }
   function getQuest(nodeId: string): LearningQuestHandle | null {
-    if (state.status !== 'ready' || !state.progress) return null;
+    if (state.status !== 'ready' || !state.progress || state.submittingOnboarding) return null;
     const campaign = content.campaigns.find(item => item.id === state.progress!.campaignId);
     if (!campaign) return null;
     const node = getCampaignProgress(campaign, toProgressSnapshot(state.progress)).nodes.find(item => item.id === nodeId);
@@ -92,7 +106,7 @@ export function createLearningApplication(
     const saved = state.saves[handle.attemptId];
     if (saved?.status === 'saved') return Promise.resolve(saved.outcome);
     const result = handle.controller.getSnapshot().result;
-    if (!backend || state.status !== 'ready' || !result || quests.get(result.nodeId) !== handle) return Promise.resolve(null);
+    if (!backend || state.status !== 'ready' || state.submittingOnboarding || !result || quests.get(result.nodeId) !== handle) return Promise.resolve(null);
     const activeBackend = backend;
     saveState(handle.attemptId, { status: 'saving', outcome: null, error: null });
     const saving = (async () => {
@@ -111,5 +125,5 @@ export function createLearningApplication(
     pendingSaves.set(handle.attemptId, saving);
     return saving;
   }
-  return { content, getSnapshot: () => state, subscribe: listener => { listeners.add(listener); return () => { listeners.delete(listener); }; }, bootstrap, submitOnboarding, refresh, getQuest, saveQuest };
+  return { content, getSnapshot: () => state, subscribe: listener => { listeners.add(listener); return () => { listeners.delete(listener); }; }, bootstrap, submitOnboarding, selectCampaign, refresh, getQuest, saveQuest };
 }

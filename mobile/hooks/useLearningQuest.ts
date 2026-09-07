@@ -17,7 +17,13 @@ export function useLearningQuest(nodeId: string) {
   }, [application, handle, result, save]);
   const revision = view?.revision ?? -1;
   const unavailable = state.status === 'ready' && !handle;
+  const node = application.content.campaigns.find(item => item.id === state.profile?.campaignId)?.nodes.find(item => item.id === nodeId);
+  const definition = application.content.quests.find(item => item.id === node?.questId);
+  const section = definition?.sections?.[(view?.section?.number ?? 1) - 1];
+  const reviewLesson = application.content.lessons.find(item => item.id === (section?.lessonId ?? definition?.lessonId));
   return {
+    reviewLesson,
+    reviewVisualization: section?.visualization,
     phase: view?.phase ?? (unavailable ? 'unavailable' : state.status === 'error' ? 'error' : state.status === 'needs_onboarding' ? 'needs_onboarding' : 'loading'),
     title: view?.title ?? '', lesson: view?.lesson ?? null, example: view?.example ?? null,
     section: view?.section ?? null, visualization: view?.visualization ?? null,

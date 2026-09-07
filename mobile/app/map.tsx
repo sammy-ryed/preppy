@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   Dimensions,
@@ -12,7 +12,11 @@ import {
   View,
 } from 'react-native';
 
+import { JourneyHeader } from '../components/learning/JourneyHeader';
+import { BimboJourney } from '../components/learning/BimboJourney';
 import { useCampaignProgress } from '../hooks/useCampaignProgress';
+import { useLearningApplication } from '../providers/LearningProvider';
+import { CURRICULUM_ID } from '../data/curriculum';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -26,9 +30,8 @@ const MAP_H     = SCREEN_W * MAP_RATIO;
 const NODE_SIZE = 75;   // px — circular level badge
 const BMO_SIZE  = 88;   // px — BMO character
 
-// Height of the head_bar image as displayed (it's a horizontal bar, ~100px tall)
-// Adjust NAV_H if your head_bar.png looks taller/shorter on device.
-const NAV_H = 100;
+// The shared header is outside the map; no artwork inset is needed.
+const NAV_H = 0;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static image registry — RN requires static require() paths
@@ -127,42 +130,50 @@ const BMO_POSITIONS: BmoPos[] = [
 // The overlaid button images are absolutely positioned inside the nav bar View.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// home_button.png: leftFrac 0, width 18% of bar, vertically centred in bar
-const HOME_BTN = { left: 0, top: 4, width: SCREEN_W * 0.18, height: NAV_H - 8 };
-
 // badges_button.png: right side, width ~30% of bar
-const BADGES_BTN = {
-  right: 0,
-  top: 8,
-  width: SCREEN_W * 0.30,
-  height: NAV_H - 16,
-};
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen
 // ─────────────────────────────────────────────────────────────────────────────
 export default function MapScreen() {
   const router    = useRouter();
+  const { completedNodeId, transitionId } = useLocalSearchParams<{ completedNodeId?: string; transitionId?: string }>();
   const scrollRef = useRef<ScrollView>(null);
   const progress  = useCampaignProgress();
+  const { application, state } = useLearningApplication();
 
 
-  // Start the user at the bottom of the map (node 1 / START area)
+  const needsFullJourney = progress.status === 'ready' && progress.campaign?.id !== CURRICULUM_ID;
   useEffect(() => {
-    const t = setTimeout(
-      () => scrollRef.current?.scrollToEnd({ animated: false }),
-      80,
-    );
-    return () => clearTimeout(t);
-  }, []);
+    if (needsFullJourney && !state.submittingOnboarding && !state.error) {
+      void application.selectCampaign(CURRICULUM_ID);
+    }
+  }, [application, needsFullJourney, state.submittingOnboarding, state.error, state.saves]);
+
+  const target = progress.nodes.find(node => node.id === progress.currentNodeId);
+  const origin = progress.nodes.find(node => node.id === completedNodeId && node.status === 'completed');
+  const position = (order: number) => {
+    const point = NODE_POSITIONS.find(item => item.num === order)!;
+    const size = order === 1 ? NODE_SIZE * 1.5 : NODE_SIZE;
+    return { x: SCREEN_W * point.leftFrac + size * 0.15, y: NAV_H + MAP_H * point.topFrac - size / 2 - 22 };
+  };
+  const destination = target ? position(target.order) : null;
+  const departure = origin && target && target.order === origin.order + 1 ? position(origin.order) : undefined;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (destination) scrollRef.current?.scrollTo({ y: Math.max(0, destination.y - Dimensions.get('window').height * 0.52), animated: false });
+      else scrollRef.current?.scrollToEnd({ animated: false });
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [destination?.y, progress.loading, needsFullJourney]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auth/Loading gates ─────────────────────────────────────
   if (progress.status === 'needs_onboarding') {
-    router.replace('/onboarding');
-    return null;
+    return <Redirect href="/onboarding" />;
   }
 
-  if (progress.loading) {
+  if (progress.loading || (needsFullJourney && !state.error)) {
     return (
       <View style={[styles.gate, styles.center]}>
         <ActivityIndicator size="large" color="#3A7BD5" />
@@ -171,11 +182,11 @@ export default function MapScreen() {
     );
   }
 
-  if (progress.status === 'error') {
+  if (progress.status === 'error' || (needsFullJourney && state.error)) {
     return (
       <View style={[styles.gate, styles.center]}>
         <Text style={styles.errorText}>{progress.error ?? 'Something went wrong.'}</Text>
-        <Pressable style={styles.retryBtn} onPress={progress.retry}>
+        <Pressable style={styles.retryBtn} onPress={() => needsFullJourney ? void application.selectCampaign(CURRICULUM_ID) : void progress.retry()}>
           <Text style={styles.retryBtnText}>Retry</Text>
         </Pressable>
       </View>
@@ -184,26 +195,28 @@ export default function MapScreen() {
 
   // ── Helpers ───────────────────────────────────────────────
   const getStatus = (num: number): 'completed' | 'available' | 'locked' =>
-    progress.nodes[num - 1]?.status ?? 'locked';
+    progress.nodes.find(node => node.order === num)?.status ?? 'locked';
 
   const bmoUnlocked = (afterNode: number): boolean => {
-    for (let n = afterNode - 4; n <= afterNode; n++) {
-      if (getStatus(n) !== 'completed') return false;
-    }
-    return true;
+    const stage = afterNode === 5 ? 'break1' : afterNode === 10 ? 'break2' : 'finalBoss';
+    const checkpoint = progress.checkpoints.find(item => item.stage === stage);
+    return Boolean(checkpoint && checkpoint.status !== 'locked');
   };
 
   const onNodePress = (num: number) => {
-    if (getStatus(num) === 'locked') return;
+    const node = progress.nodes.find(item => item.order === num);
+    if (!node || node.status === 'locked') return;
     router.push(
-      { pathname: '/level/[levelNum]' as never, params: { levelNum: String(num) } },
+      { pathname: '/quest/[nodeId]', params: { nodeId: node.id } },
     );
   };
 
   const onBmoPress = (idx: number) => {
+    const checkpoint = progress.checkpoints.find(item => item.stage === ['break1', 'break2', 'finalBoss'][idx]);
+    if (!checkpoint || checkpoint.status === 'locked') return;
     router.push({
       pathname: '/game/[checkpointId]',
-      params: { checkpointId: `bmo${idx + 1}` },
+      params: { checkpointId: checkpoint.id },
     });
   };
 
@@ -214,6 +227,7 @@ export default function MapScreen() {
   // ── Render ────────────────────────────────────────────────
   return (
     <View style={styles.screen}>
+      <JourneyHeader />
       {/* ── Scrollable map ── */}
       <ScrollView
         ref={scrollRef}
@@ -235,6 +249,8 @@ export default function MapScreen() {
           const status   = getStatus(num);
           const isLocked = status === 'locked';
           const src      = isLocked ? BLACK[num] : COLOURED[num];
+          const node = progress.nodes.find(item => item.order === num);
+          const stars = node?.stars ?? 0;
           const size     = num === 1 ? NODE_SIZE * 1.5 : NODE_SIZE;
 
           return (
@@ -255,7 +271,14 @@ export default function MapScreen() {
               accessibilityLabel={`Level ${num}${isLocked ? ' — locked' : ''}`}
               accessibilityState={{ disabled: isLocked }}
             >
-              <Image source={src} style={styles.nodeImg} resizeMode="contain" />
+              {/* Clip the baked-in gold stars; the rating below reflects saved scores. */}
+              <View style={{ height: size * 0.65, overflow: 'hidden' }}>
+                <Image source={src} style={{ width: size, height: size }} resizeMode="contain" />
+              </View>
+              <View style={[styles.nodeStars, { top: size * 0.63, height: size * 0.27, backgroundColor: isLocked ? '#DADDE1' : '#FFF0C5' }]}
+                accessibilityLabel={`${stars} of 3 stars${status === 'completed' ? '' : ', not completed'}`}>
+                {[1, 2, 3].map(star => <Text key={star} style={{ fontSize: size * 0.23, lineHeight: size * 0.27, color: star <= stars ? '#E7A600' : '#8B929A' }}>{star <= stars ? '★' : '☆'}</Text>)}
+              </View>
             </Pressable>
           );
         })}
@@ -278,6 +301,8 @@ export default function MapScreen() {
                 },
               ]}
               onPress={() => onBmoPress(idx)}
+              disabled={!unlocked}
+              accessibilityState={{ disabled: !unlocked }}
               accessibilityRole="button"
               accessibilityLabel={`BMO checkpoint ${idx + 1}`}
             >
@@ -285,42 +310,9 @@ export default function MapScreen() {
             </Pressable>
           );
         })}
+        {destination && <BimboJourney key={`${completedNodeId ?? ''}:${target?.id}`} from={departure} to={destination} transitionId={transitionId} />}
       </ScrollView>
 
-      {/* ── Sticky nav bar — pinned to top: 0, floats above map ── */}
-      <View
-        pointerEvents="box-none"
-        style={styles.navWrapper}
-      >
-        {/* head_bar.png is the visual — buttons are invisible regions on top */}
-        <Image
-          source={require('../assets/head_bar.png')}
-          style={styles.navBgImg}
-          resizeMode="contain"
-        />
-
-        {/* Invisible home hit-area — left side of bar */}
-        <Pressable
-          style={[styles.navHitArea, HOME_BTN]}
-          onPress={() => router.push('/home' as never)}
-          accessibilityRole="button"
-          accessibilityLabel="Home"
-        />
-
-        {/* Invisible badges hit-area — right side of bar */}
-        <Pressable
-          style={[styles.navHitArea, BADGES_BTN]}
-          onPress={() => router.push('/badges' as never)}
-          accessibilityRole="button"
-          accessibilityLabel="Badges"
-        />
-
-        {/* ── Progress bar placeholder (centre of bar) ──
-            TODO: wire up dynamic fill value when ready — remind me! */}
-        <View style={styles.progressTrack} pointerEvents="none">
-          <View style={[styles.progressFill, { width: '0%' }]} />
-        </View>
-      </View>
     </View>
   );
 }
@@ -353,49 +345,15 @@ const styles = StyleSheet.create({
   // Node / BMO buttons are absolutely positioned in the scroll content
   nodeBtn: { position: 'absolute' },
   nodeImg: { width: '100%', height: '100%' },
+  nodeStars: { position: 'absolute', left: '9%', width: '82%', borderRadius: 12, borderWidth: 1, borderColor: '#B99D76', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 1 },
+  currentMarker: { position: 'absolute', alignItems: 'center', zIndex: 5 },
+  bimboCrop: { width: 40, height: 35, overflow: 'hidden' },
+  currentBimbo: { position: 'absolute', width: 62, height: 68, left: -11, top: -17 },
+  markerArrow: { color: '#177D79', fontSize: 13, lineHeight: 14 },
   bmoBtn:  { position: 'absolute' },
   bmoImg:  { width: '100%', height: '100%' },
 
   // ── Sticky nav bar ────────────────────────────────────────
-  navWrapper: {
-    position: 'absolute',
-    top: 0,          // pinned to the very top of the screen
-    left: 0,
-    right: 0,
-    height: NAV_H,
-    zIndex: 100,
-  },
-  // head_bar.png stretches full width
-  navBgImg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_W,
-    height: NAV_H,
-  },
-  // Fully transparent hit-areas — no children, no background
-  navHitArea: {
-    position: 'absolute',
-  },
-
-  // Progress bar — centred inside the bar, overlaid on the BMO area
-  // Position: roughly 52–72% from left, bottom 28% of bar height
-  progressTrack: {
-    position: 'absolute',
-    left:   SCREEN_W * 0.36,
-    right:  SCREEN_W * 0.22,
-    bottom: NAV_H * 0.18,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: 'rgba(255,200,220,0.5)',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 5,
-    backgroundColor: '#FF8DC7',
-  },
-
   // Loading / error gates
   gate:     { flex: 1, backgroundColor: '#F0F4FF' },
   center:   { alignItems: 'center', justifyContent: 'center', gap: 16 },
