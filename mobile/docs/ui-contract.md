@@ -3,8 +3,11 @@
 **Product update:** every educational node will contain aptitude explanation,
 solved example and quiz, followed by DSA explanation, visualization, solved
 example and quiz, then combined results. See [the revised plan](combined-node-plan.md).
-The section-aware engine is not implemented yet; the API below describes current
-exports. Map work can proceed with the existing progress hook and opaque node IDs.
+The section-aware engine is now implemented as an opt-in catalog; see the
+[combined quest API](combined-quest-engine.md). It is not active in the UI yet.
+Map work can proceed with the existing progress hook and opaque node IDs.
+The [full 15-node curriculum and visualization state contract](curriculum.md) is
+also available as an opt-in backend catalog. It is not yet enabled in screens.
 
 Valli owns presentation; Figma is the visual source of truth. Use native React
 Native components and styles. Screens consume hooks, without implementing scoring

@@ -20,6 +20,7 @@ export function useLearningQuest(nodeId: string) {
   return {
     phase: view?.phase ?? (unavailable ? 'unavailable' : state.status === 'error' ? 'error' : state.status === 'needs_onboarding' ? 'needs_onboarding' : 'loading'),
     title: view?.title ?? '', lesson: view?.lesson ?? null, example: view?.example ?? null,
+    section: view?.section ?? null, visualization: view?.visualization ?? null,
     question: view?.question ?? null, hint: view?.hint ?? null, feedback: view?.feedback ?? null,
     questionNumber: view?.questionNumber ?? null, questionCount: view?.questionCount ?? 0,
     answeredCount: view?.answeredCount ?? 0,
@@ -31,6 +32,9 @@ export function useLearningQuest(nodeId: string) {
     submitAnswer: (answer: { questionId: string; selectedOptionId: string }) => handle?.controller.dispatch({ type: 'answer', revision, ...answer }),
     next: () => handle?.controller.dispatch({ type: 'next', revision }),
     requestHint: () => handle?.controller.dispatch({ type: 'hint', revision }),
+    nextVisualizationStep: () => handle?.controller.dispatch({ type: 'visualization_next', revision }),
+    previousVisualizationStep: () => handle?.controller.dispatch({ type: 'visualization_previous', revision }),
+    resetVisualization: () => handle?.controller.dispatch({ type: 'visualization_reset', revision }),
     retrySave: () => handle ? application.saveQuest(handle) : Promise.resolve(null),
     retryLoad: application.refresh,
   };

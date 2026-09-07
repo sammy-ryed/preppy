@@ -30,6 +30,7 @@ export function useQuest(nodeId: string, options: QuestOptions = {}) {
     phase: view?.phase ?? 'error',
     nodeId, title: view?.title ?? '',
     lesson: view?.lesson ?? null, example: view?.example ?? null,
+    section: view?.section ?? null, visualization: view?.visualization ?? null,
     question: view?.question ?? null, hint: view?.hint ?? null,
     feedback: view?.feedback ?? null, result: view?.result ?? null,
     questionNumber: view?.questionNumber ?? null,
@@ -38,6 +39,9 @@ export function useQuest(nodeId: string, options: QuestOptions = {}) {
     submitAnswer: (answer: { questionId: string; selectedOptionId: string }) => session.controller?.dispatch({ type: 'answer', revision, ...answer }),
     next: () => session.controller?.dispatch({ type: 'next', revision }),
     requestHint: () => session.controller?.dispatch({ type: 'hint', revision }),
+    nextVisualizationStep: () => session.controller?.dispatch({ type: 'visualization_next', revision }),
+    previousVisualizationStep: () => session.controller?.dispatch({ type: 'visualization_previous', revision }),
+    resetVisualization: () => session.controller?.dispatch({ type: 'visualization_reset', revision }),
   };
 }
 

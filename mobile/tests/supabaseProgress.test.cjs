@@ -101,6 +101,93 @@ test('PostgreSQL migration and RPC adapter integration', async t => {
     assert.equal((await service.readProgress(key)).revision, 2);
   });
 
+  await t.test('combined results survive SQL roundtrip and forged section scores are recalculated', async () => {
+    const { combinedContent } = require('../.domain-test/data/combinedContent.js');
+    const combined = createLearningService(combinedContent, repository);
+    const combinedKey = { userId: user1, campaignId: 'combined-demo' };
+    await combined.initializeProgress(combinedKey, { aptitudeLevel: 'beginner', dsaLevel: 'beginner' });
+    const controller = createQuestController(combinedContent, 'combined-demo', 'combined-demo:foundations');
+    for (let i = 0; i < 80 && controller.getSnapshot().phase !== 'result'; i++) {
+      const view = controller.getSnapshot();
+      if (view.phase === 'question') {
+        const q = combinedContent.questions.find(item => item.id === view.question.id);
+        controller.dispatch({ type: 'answer', revision: view.revision, questionId: q.id, selectedOptionId: q.correctOptionId });
+      } else controller.dispatch({ type: view.phase === 'visualization' && !view.visualization.canContinue ? 'visualization_next' : 'next', revision: view.revision });
+    }
+    const attempt = controller.getSnapshot().result;
+    assert.ok(attempt);
+    const forged = { ...attempt, sectionPerformances: [{ subject: 'dsa', skillId: 'arrays', performance: { score: 999 } }] };
+    const saved = await combined.saveAttempt(combinedKey, 'combined-first', forged);
+    assert.deepEqual(saved.receipt.sectionPerformances.map(s => s.performance.score), [95, 95]);
+    assert.equal(saved.progress.xp, 150);
+    assert.deepEqual(await combined.readProgress(combinedKey), saved.progress);
+    const duplicate = await repository.commit({ key: combinedKey, campaignVersion: 1, expectedRevision: 0,
+      receipt: saved.receipt, skills: saved.progress.skills });
+    assert.equal(duplicate.status, 'duplicate');
+    assert.equal(duplicate.xpAwardedNow, 0);
+    const badRow = (await db.query('select * from public.preppy_user_progress where campaign_id = $1', ['combined-demo'])).rows[0];
+    badRow.node_results['combined-demo:foundations'].sectionPerformances[0].performance.score = 999;
+    assert.throws(() => decodeProgress(badRow), /Malformed/);
+  });
+
+  await t.test('all 15 curriculum nodes persist with checkpoint gates, regrading, and one reward each', async () => {
+    const { curriculumContent, CURRICULUM_ID } = require('../.domain-test/data/curriculum/index.js');
+    const curriculum = createLearningService(curriculumContent, repository);
+    const curriculumKey = { userId: user1, campaignId: CURRICULUM_ID };
+    const campaign = curriculumContent.campaigns[0];
+    const initial = await curriculum.initializeProgress(curriculumKey, { aptitudeLevel: 'beginner', dsaLevel: 'beginner' });
+    assert.equal(initial.xp, 0);
+    let total = 0;
+    const checkpoints = [];
+    const completed = node => {
+      const c = createQuestController(curriculumContent, CURRICULUM_ID, node.id);
+      for (let i=0; i<600 && c.getSnapshot().phase !== 'result'; i++) {
+        const v=c.getSnapshot();
+        if(v.phase==='question') {
+          const q=curriculumContent.questions.find(q=>q.id===v.question.id);
+          c.dispatch({type:'answer',revision:v.revision,questionId:q.id,selectedOptionId:q.correctOptionId});
+        } else c.dispatch({type:v.phase==='visualization'&&!v.visualization.canContinue?'visualization_next':'next',revision:v.revision});
+      }
+      assert.ok(c.getSnapshot().result);
+      return c.getSnapshot().result;
+    };
+    await assert.rejects(curriculum.saveAttempt(curriculumKey, 'early', completed(campaign.nodes[1])), /locked/);
+    for (const [index,node] of campaign.nodes.entries()) {
+      const attempt=completed(node);
+      const before=await curriculum.readProgress(curriculumKey);
+      await assert.rejects(curriculum.saveAttempt(curriculumKey, `partial-${index}`, {...attempt,answers:attempt.answers.slice(0,3)}));
+      assert.deepEqual(await curriculum.readProgress(curriculumKey),before);
+      if(index===5||index===10) {
+        await assert.rejects(curriculum.saveAttempt(curriculumKey, `locked-${index}`,attempt), /locked/);
+        // Test fixture only: emulate the future game service resolving its checkpoint.
+        // Production authenticated clients still cannot update the table directly.
+        checkpoints.push({checkpointId:campaign.checkpoints[index/5-1].id,status:'completed'});
+        await db.exec('reset role');
+        await db.query('update public.preppy_user_progress set checkpoints=$1, revision=revision+1 where user_id=$2 and campaign_id=$3',
+          [JSON.stringify(checkpoints),user1,CURRICULUM_ID]);
+        await login(user1);
+      }
+      const outcomes=await Promise.all([curriculum.saveAttempt(curriculumKey,`node-${index}`,attempt),curriculum.saveAttempt(curriculumKey,`node-${index}`,attempt)]);
+      assert.equal(outcomes.reduce((sum,o)=>sum+o.xpAwardedNow,0),node.baseXp+50);
+      total+=node.baseXp+50;
+      const saved=await curriculum.readProgress(curriculumKey);
+      assert.equal(saved.xp,total);
+      assert.equal(Object.keys(saved.nodeResults).length,index+1);
+      assert.deepEqual(saved.nodeResults[node.id].sectionPerformances.map(s=>s.performance.score),[95,95]);
+      assert.equal(saved.nodeResults[node.id].skillChanges.length,2);
+      const replay=await curriculum.saveAttempt(curriculumKey,`replay-${index}`,attempt);
+      assert.equal(replay.status,'replay'); assert.equal(replay.xpAwardedNow,0);
+      assert.deepEqual(await curriculum.readProgress(curriculumKey),saved);
+    }
+    assert.equal(total,2625);
+    const restored=await createLearningService(curriculumContent,createSupabaseProgressRepository(client)).readProgress(curriculumKey);
+    assert.equal(restored.xp,2625);
+    assert.deepEqual(restored.checkpoints,checkpoints);
+    assert.deepEqual(restored.nodeResults[campaign.nodes[14].id].unlockedCheckpointIds,[campaign.checkpoints[2].id]);
+    assert.equal(restored.nodeResults[campaign.nodes[4].id].unlockedNodeIds.length,0);
+    assert.deepEqual(await curriculum.initializeProgress(curriculumKey,{aptitudeLevel:'advanced',dsaLevel:'advanced'}),restored);
+  });
+
   await t.test('authenticated user cannot directly mutate rows or impersonate another user', async () => {
     await assert.rejects(db.query('update public.preppy_user_progress set xp = 999'), /permission denied/);
     await assert.rejects(db.query('delete from public.preppy_user_progress'), /permission denied/);

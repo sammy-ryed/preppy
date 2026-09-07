@@ -2,7 +2,9 @@
 
 User-approved product change: every educational node contains both aptitude and
 DSA in a fixed order. This document is a plan, not a claim of implemented exports.
-The current engine still supports one lesson/example and one question list.
+The combined engine is now implemented with a separate opt-in demo catalog; see
+[the implementation contract](combined-quest-engine.md). UI activation and campaign
+switching remain pending Valli's design. Existing app content remains unchanged.
 
 ## Required flow
 

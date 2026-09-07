@@ -1,4 +1,5 @@
 import type { ProgressRepository, UserProgress } from '../types/progress';
+import { APTITUDE_SKILL_IDS, DSA_SKILL_IDS } from '../types/content';
 
 // SupabaseClient satisfies this small boundary; test doubles need no network or SDK.
 export interface ProgressRpcClient {
@@ -19,6 +20,13 @@ function skill(value: unknown) {
   const item = record(value);
   check(integer(item.mastery) && Number(item.mastery) <= 100 && integer(item.evidenceCount));
 }
+function validatePerformance(value: unknown) {
+  const performance = record(value);
+  check(integer(performance.score) && Number(performance.score) <= 100 && integer(performance.scoringVersion, 1)
+    && integer(performance.evidenceCount, 1) && fraction(performance.process) && fraction(performance.accuracy) && fraction(performance.time));
+  const points = record(performance.points);
+  check([points.process, points.accuracy, points.time].every(point => typeof point === 'number' && Number.isFinite(point) && point >= 0 && point <= 100));
+}
 
 export function decodeProgress(value: unknown): UserProgress {
   const row = record(value);
@@ -35,11 +43,17 @@ export function decodeProgress(value: unknown): UserProgress {
       && typeof receipt.completedAt === 'string' && Number.isFinite(Date.parse(receipt.completedAt)));
     check(!attemptIds.has(String(receipt.attemptId)));
     attemptIds.add(String(receipt.attemptId));
-    const performance = record(receipt.performance);
-    check(integer(performance.score) && Number(performance.score) <= 100 && integer(performance.scoringVersion, 1)
-      && integer(performance.evidenceCount, 1) && fraction(performance.process) && fraction(performance.accuracy) && fraction(performance.time));
-    const points = record(performance.points);
-    check([points.process, points.accuracy, points.time].every(point => typeof point === 'number' && Number.isFinite(point) && point >= 0 && point <= 100));
+    validatePerformance(receipt.performance);
+    if (receipt.sectionPerformances !== undefined) {
+      check(Array.isArray(receipt.sectionPerformances) && receipt.sectionPerformances.length === 2);
+      receipt.sectionPerformances.forEach((rawSection, index) => {
+        const section = record(rawSection);
+        check(section.subject === (index === 0 ? 'aptitude' : 'dsa'));
+        const allowedSkills: readonly string[] = index === 0 ? APTITUDE_SKILL_IDS : DSA_SKILL_IDS;
+        check(allowedSkills.includes(String(section.skillId)));
+        validatePerformance(section.performance);
+      });
+    }
     check(Object.values(record(receipt.questionVersions)).every(version => integer(version, 1)));
     check(Array.isArray(receipt.answers) && receipt.answers.length > 0);
     for (const rawAnswer of receipt.answers) {
