@@ -1,5 +1,6 @@
+import { SoundPressable as Pressable } from '../learning/SoundPressable';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBadges } from '../../hooks/useBadges';
 import { BadgeArt } from '../learning/BadgeArt';

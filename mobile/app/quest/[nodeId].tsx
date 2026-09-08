@@ -1,6 +1,7 @@
+import { SoundPressable as Pressable } from '../../components/learning/SoundPressable';
 import { useEffect, useRef } from 'react';
 import { Redirect, useRouter, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLearningQuest } from '../../hooks/useLearningQuest';
 import { JourneyHeader } from '../../components/learning/JourneyHeader';
 import { QuizCard } from '../../components/learning/QuizCard';

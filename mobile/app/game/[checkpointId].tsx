@@ -1,6 +1,7 @@
+import { SoundPressable as Pressable } from '../../components/learning/SoundPressable';
 import { useEffect, useState } from 'react';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, BackHandler, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, BackHandler, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useGameSession } from '../../hooks/useGameSession';
 import { GameLobby } from '../../components/learning/GameLobby';
 import { GameView } from '../../components/learning/GameView';

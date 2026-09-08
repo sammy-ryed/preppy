@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { useLearningApplication } from '../providers/LearningProvider';
+import { playSound } from '../services/soundEffects';
 
 const subscribeToNothing = () => () => {};
 const emptySnapshot = () => null;
@@ -35,7 +36,12 @@ export function useLearningQuest(nodeId: string) {
     submitting: Boolean(result) && (!save || save.status === 'saving'),
     saveStatus: save?.status ?? 'idle',
     error: save?.error ?? view?.error ?? state.error ?? (unavailable ? 'This quest is locked or does not exist.' : null),
-    submitAnswer: (answer: { questionId: string; selectedOptionId: string }) => handle?.controller.dispatch({ type: 'answer', revision, ...answer }),
+    submitAnswer: (answer: { questionId: string; selectedOptionId: string }) => {
+      if (!handle || handle.controller.getSnapshot().phase !== 'question') return;
+      handle.controller.dispatch({ type: 'answer', revision, ...answer });
+      const feedback = handle.controller.getSnapshot().feedback;
+      if (feedback?.questionId === answer.questionId) playSound(feedback.correct ? 'correct' : 'wrong', `${handle.attemptId}:${feedback.questionId}`);
+    },
     next: () => handle?.controller.dispatch({ type: 'next', revision }),
     requestHint: () => handle?.controller.dispatch({ type: 'hint', revision }),
     nextVisualizationStep: () => handle?.controller.dispatch({ type: 'visualization_next', revision }),

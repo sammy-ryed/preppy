@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { SoundPressable as Pressable } from '../components/learning/SoundPressable';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BadgeArt } from '../components/learning/BadgeArt';
 import { useBadgeNotifications } from '../components/learning/BadgeUnlocks';
 import { useBadges } from '../hooks/useBadges';
+import { playSound } from '../services/soundEffects';
 
 export default function BadgeUnlockScreen() {
   const { badgeId } = useLocalSearchParams<{ badgeId?: string }>();
@@ -16,6 +18,10 @@ export default function BadgeUnlockScreen() {
   const closing = useRef(false);
   const badge = badgeId ? badges.find(item => item.id === badgeId && item.earned) : pending[0];
   const remaining = badgeId ? 0 : Math.max(0, pending.length - 1);
+  const [celebrationVisit] = useState(() => `${Date.now()}:${Math.random()}`);
+  useFocusEffect(useCallback(() => {
+    if (badge) playSound('badge', `${celebrationVisit}:${badge.notificationId}`);
+  }, [badge, celebrationVisit]));
   const leave = useCallback(() => {
     if (closing.current) return;
     closing.current = true;

@@ -1,5 +1,6 @@
+import { SoundPressable as Pressable } from './SoundPressable';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { useLearningQuest } from '../../hooks/useLearningQuest';
 import { visualizationSteps } from '../../domain/visualizations';
 import { Visualization } from './Visualization';
@@ -35,7 +36,7 @@ export function QuizCard({ quest }: Props) {
           <Text style={s.detail}>{feedback.explanation}</Text>
         </> : <>
           <Text style={s.answerLabel}>CHOOSE YOUR ANSWER</Text>
-          {question.options.map((option, index) => <Pressable key={option.id}
+          {question.options.map((option, index) => <Pressable key={option.id} tapSound={false}
             accessibilityRole="button" style={({ pressed }) => [s.option, pressed && s.pressed]}
             onPress={() => quest.submitAnswer({ questionId: question.id, selectedOptionId: option.id })}>
             <Text style={s.letter}>{String.fromCharCode(65 + index)}</Text>

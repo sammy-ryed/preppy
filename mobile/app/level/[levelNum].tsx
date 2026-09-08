@@ -1,6 +1,6 @@
+import { SoundPressable as Pressable } from '../../components/learning/SoundPressable';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  Pressable,
   StyleSheet,
   Text,
   View,

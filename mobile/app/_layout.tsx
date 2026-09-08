@@ -14,6 +14,7 @@ import { View } from 'react-native';
 
 import { LearningProvider } from '../providers/LearningProvider';
 import { BadgeUnlocks } from '../components/learning/BadgeUnlocks';
+import { SoundEffects } from '../components/learning/SoundEffects';
 
 // Shared routing shell. Screen presentation belongs to Valli.
 export default function RootLayout() {
@@ -31,6 +32,7 @@ export default function RootLayout() {
 
   return (
     <LearningProvider>
+      <SoundEffects />
       <BadgeUnlocks>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, orientation: 'portrait' }}>

@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SoundPressable as Pressable } from './SoundPressable';
+import { StyleSheet, Text, View } from 'react-native';
 import type { useLearningQuest } from '../../hooks/useLearningQuest';
 import { Visualization } from './Visualization';
 

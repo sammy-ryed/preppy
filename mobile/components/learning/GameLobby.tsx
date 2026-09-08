@@ -1,4 +1,5 @@
-import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SoundPressable as Pressable } from './SoundPressable';
+import { ActivityIndicator, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { useGameSession } from '../../hooks/useGameSession';
 import { JourneyHeader } from './JourneyHeader';
