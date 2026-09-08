@@ -14,6 +14,7 @@ import { View } from 'react-native';
 
 import { LearningProvider } from '../providers/LearningProvider';
 import { BadgeUnlocks } from '../components/learning/BadgeUnlocks';
+import { SoundEffects } from '../components/learning/SoundEffects';
 
 // Shared routing shell. Screen presentation belongs to Valli.
 export default function RootLayout() {
@@ -31,6 +32,8 @@ export default function RootLayout() {
 
   return (
     <LearningProvider>
+      <SoundEffects />
+      <BadgeUnlocks>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, orientation: 'portrait' }}>
         <Stack.Screen name="index" />
@@ -38,13 +41,14 @@ export default function RootLayout() {
         <Stack.Screen name="map" />
         <Stack.Screen name="home" />
         <Stack.Screen name="badges" />
+        <Stack.Screen name="badge-unlock" options={{ presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' }, gestureEnabled: false }} />
         <Stack.Screen name="level/[levelNum]" />
         <Stack.Screen name="quest/[nodeId]" />
         <Stack.Screen name="game/[checkpointId]" />
         <Stack.Screen name="skills" />
         <Stack.Screen name="achievements" />
       </Stack>
-      <BadgeUnlocks />
+      </BadgeUnlocks>
     </LearningProvider>
   );
 }

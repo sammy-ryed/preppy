@@ -1,3 +1,4 @@
+import { SoundPressable as Pressable } from '../components/learning/SoundPressable';
 import { useEffect, useRef } from 'react';
 import { Redirect, useRouter, useLocalSearchParams } from 'expo-router';
 import {
@@ -5,7 +6,6 @@ import {
   Dimensions,
   Image,
   type ImageSourcePropType,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,

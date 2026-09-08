@@ -1,5 +1,6 @@
+import { SoundPressable as Pressable } from '../components/learning/SoundPressable';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSkills } from '../hooks/useSkills';
 
 const BLUE = '#3A7BD5';
