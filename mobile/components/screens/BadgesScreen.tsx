@@ -1,9 +1,12 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBadges } from '../../hooks/useBadges';
 import { BadgeArt } from '../learning/BadgeArt';
 import { JourneyHeader } from '../learning/JourneyHeader';
+import { BadgeCelebration } from '../learning/BadgeUnlocks';
+import type { BadgeId } from '../../domain/badges';
 
 export default function BadgesScreen() {
   const { badges, status, error, retry } = useBadges();
@@ -11,6 +14,7 @@ export default function BadgesScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const earned = badges.filter(badge => badge.earned).length;
+  const [preview, setPreview] = useState<BadgeId | null>(null);
   return <View style={s.screen}>
     <JourneyHeader compact />
     <ScrollView contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 24 }]}>
@@ -20,16 +24,17 @@ export default function BadgesScreen() {
       <Text style={s.subtitle}>{earned} of 5 collected. Every badge tells a story.</Text>
       {(status === 'loading' || status === 'idle') && <ActivityIndicator color="#9D3865" />}
       {error && <View style={s.card}><Text accessibilityRole="alert" style={s.hint}>{error}</Text><Pressable accessibilityRole="button" style={s.back} onPress={() => void retry()}><Text style={s.backText}>Try again</Text></Pressable></View>}
-      {badges.map(badge => <View key={badge.id} style={[s.card, !badge.earned && s.lockedCard]}>
+      {badges.map(badge => <Pressable key={badge.id} disabled={!badge.earned} accessibilityRole={badge.earned ? 'button' : undefined} accessibilityLabel={badge.earned ? `${badge.title}. Replay celebration` : undefined} onPress={() => setPreview(badge.id)} style={({ pressed }) => [s.card, !badge.earned && s.lockedCard, pressed && { opacity: 0.8 }]}>
         <View style={s.art}><BadgeArt id={badge.id} width={Math.min(width - 100, 260)} locked={!badge.earned} />
           {!badge.earned && <View style={s.lock}><Text style={s.lockText}>🔒 LOCKED</Text></View>}
         </View>
         <Text style={[s.state, badge.earned && s.earned]}>{badge.earned ? '✓ COLLECTED' : 'STILL TO DISCOVER'}</Text>
         <Text accessibilityRole="header" style={s.badgeTitle}>{badge.title}</Text>
         <Text style={s.nickname}>{badge.nickname}</Text>
-        <Text style={s.hint}>{badge.earned ? 'You earned this keepsake. Nice adventuring!' : badge.hint}</Text>
-      </View>)}
+        <Text style={s.hint}>{badge.earned ? 'Tap to celebrate this keepsake again.' : badge.hint}</Text>
+      </Pressable>)}
     </ScrollView>
+    <BadgeCelebration badge={badges.find(badge => badge.id === preview && badge.earned)} onDismiss={() => setPreview(null)} />
   </View>;
 }
 const s = StyleSheet.create({

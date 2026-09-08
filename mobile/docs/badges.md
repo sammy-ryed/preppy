@@ -19,6 +19,9 @@ The root `BadgeUnlocks` component queues earned, unacknowledged badges. It waits
 until leaving a game route to avoid covering gameplay. Acknowledgements are stored
 in AsyncStorage per user/campaign; refreshes do not repeat dismissed notifications.
 Previously earned badges also get a first celebration when this feature is opened.
+The v2 acknowledgement cache requeues existing badges once after the popup update.
+Collected cards can be tapped to replay their celebration without changing rewards
+or acknowledgement state. The modal mounts only while a celebration is visible.
 Clearing device storage or switching devices can show the celebrations again;
 ownership still comes from backend progress. If acknowledgement storage fails,
 dismissal works for the current session.

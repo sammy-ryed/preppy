@@ -5,5 +5,5 @@ export function useBadges() {
   const { application, state } = useLearningApplication();
   return { badges: getBadges(state.progress, application.content), status: state.status,
     error: state.error, retry: application.refresh,
-    storageKey: state.userId && state.progress ? `preppy:badge-popups:v1:${state.userId}:${state.progress.campaignId}` : null };
+    storageKey: state.userId && state.progress ? `preppy:badge-popups:v2:${state.userId}:${state.progress.campaignId}` : null };
 }

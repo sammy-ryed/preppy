@@ -5,12 +5,11 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensio
 import { useReducedMotion } from 'react-native-reanimated';
 import { useBadges } from '../../hooks/useBadges';
 import { BadgeArt } from './BadgeArt';
+import type { getBadges } from '../../domain/badges';
 
 export function BadgeUnlocks() {
   const { badges, storageKey, status } = useBadges();
   const pathname = usePathname();
-  const reducedMotion = useReducedMotion();
-  const { width, height } = useWindowDimensions();
   const [seen, setSeen] = useState<{ key: string; ids: string[] } | null>(null);
   const [saving, setSaving] = useState(false);
   const busy = useRef(false);
@@ -41,19 +40,28 @@ export function BadgeUnlocks() {
     catch { /* Still dismiss in memory if device storage is temporarily unavailable. */ }
     finally { setSeen(next); setSaving(false); busy.current = false; }
   }
-  return <Modal visible={visible} transparent animationType={reducedMotion ? 'none' : 'fade'} onRequestClose={() => void dismiss()} statusBarTranslucent>
+  return <BadgeCelebration badge={visible ? badge : undefined} remaining={pending.length - 1} saving={saving} onDismiss={() => void dismiss()} />;
+}
+
+export function BadgeCelebration({ badge, remaining = 0, saving = false, onDismiss }: {
+  badge?: ReturnType<typeof getBadges>[number]; remaining?: number; saving?: boolean; onDismiss: () => void;
+}) {
+  const reducedMotion = useReducedMotion();
+  const { width, height } = useWindowDimensions();
+  if (!badge) return null;
+  return <Modal visible transparent animationType={reducedMotion ? 'none' : 'fade'} onRequestClose={onDismiss} statusBarTranslucent>
     <View style={s.scrim}>
-      {badge && <ScrollView style={{ maxHeight: height * 0.85, width: Math.min(width - 40, 360) }} contentContainerStyle={s.card} bounces={false}>
+      <ScrollView style={{ flexGrow: 0, maxHeight: height * 0.85, width: Math.min(width - 40, 360) }} contentContainerStyle={s.card} bounces={false}>
         <Text style={s.eyebrow}>✦ NEW BADGE UNLOCKED ✦</Text>
         <BadgeArt id={badge.id} width={Math.min(width - 100, 245)} />
         <Text accessibilityRole="header" style={s.title}>{badge.nickname}</Text>
         <Text style={s.name}>{badge.title}</Text>
         <Text style={s.body}>A new keepsake for your adventure.{ '\n' }Find it anytime in your badge collection.</Text>
-        <Pressable accessibilityRole="button" disabled={saving} onPress={() => void dismiss()} style={({ pressed }) => [s.button, (pressed || saving) && { opacity: 0.65 }]}>
-          <Text style={s.buttonText}>{pending.length > 1 ? 'Awesome! Next badge →' : 'Awesome! Keep going →'}</Text>
+        <Pressable accessibilityRole="button" disabled={saving} onPress={onDismiss} style={({ pressed }) => [s.button, (pressed || saving) && { opacity: 0.65 }]}>
+          <Text style={s.buttonText}>{remaining > 0 ? 'Awesome! Next badge →' : 'Awesome! Keep going →'}</Text>
         </Pressable>
-        {pending.length > 1 && <Text style={s.body}>{pending.length - 1} more to celebrate</Text>}
-      </ScrollView>}
+        {remaining > 0 && <Text style={s.body}>{remaining} more to celebrate</Text>}
+      </ScrollView>
     </View>
   </Modal>;
 }
