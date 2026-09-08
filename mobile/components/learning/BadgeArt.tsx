@@ -11,9 +11,9 @@ const artwork = {
 
 export function BadgeArt({ id, width, locked = false }: { id: BadgeId; width: number; locked?: boolean }) {
   const source = artwork[id];
-  // Use the illustrated upper portion; the PNGs' baked-in stat numbers are not player scores.
+  // Keep the full supplied card, including its border and footer, at its original ratio.
   const height = width * (id === 'region-2' || id === 'region-3' ? 1536 / 1024 : 830 / 553);
-  return <View accessible={false} style={{ width, height: height * 0.49, overflow: 'hidden', borderRadius: width * 0.08, opacity: locked ? 0.25 : 1 }}>
+  return <View accessible={false} style={{ width, height, opacity: locked ? 0.25 : 1 }}>
     <Image source={source} style={{ width, height }} resizeMode="contain" />
   </View>;
 }

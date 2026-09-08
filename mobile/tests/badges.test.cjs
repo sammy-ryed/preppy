@@ -1,11 +1,11 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { getBadges } = require('../.domain-test/domain/badges.js');
+const { getBadges, getUnseenBadges } = require('../.domain-test/domain/badges.js');
 const { curriculumContent: content } = require('../.domain-test/data/curriculum/index.js');
 const campaign = content.campaigns[0];
 const node = campaign.nodes[0];
 const quest = content.quests.find(item => item.id === node.questId);
-const receipt = () => ({ persistence: 'saved', campaignId: campaign.id, nodeId: node.id, questId: quest.id,
+const receipt = () => ({ persistence: 'saved', attemptId: 'first-run-attempt', completedAt: '2026-09-08T10:00:00.000Z', campaignId: campaign.id, nodeId: node.id, questId: quest.id,
   performance: { score: 80 }, answers: quest.questionIds.map(questionId => ({ questionId, correct: true, hintUsed: true })) });
 const progress = () => ({ campaignId: campaign.id, nodeResults: {}, checkpoints: [] });
 const earned = value => getBadges(value, content).filter(badge => badge.earned).map(badge => badge.id);
@@ -17,6 +17,35 @@ test('all five badges start locked, and a saved perfect node earns the first two
   state.nodeResults[node.id] = receipt();
   assert.deepEqual(earned(state), ['first-solved', 'zero-mistakes']);
   assert.deepEqual(earned(JSON.parse(JSON.stringify(state))), earned(state));
+});
+
+test('clearing database progress and earning again cannot be suppressed by the previous phone notification history', () => {
+  const state = progress(); state.nodeResults[node.id] = receipt();
+  const previousBadges = getBadges(state, content);
+  const seen = getUnseenBadges(previousBadges, []).map(badge => badge.notificationId);
+  assert.deepEqual(getUnseenBadges(previousBadges, seen), []);
+  assert.deepEqual(getUnseenBadges(getBadges(progress(), content), seen), []);
+  // Same user/campaign, new saved attempt after the database was cleared.
+  state.nodeResults[node.id] = { ...receipt(), attemptId: 'fresh-run-attempt', completedAt: '2026-09-08T11:00:00.000Z' };
+  const freshBadges = getBadges(state, content);
+  assert.deepEqual(getUnseenBadges(freshBadges, seen).map(badge => badge.id), ['first-solved', 'zero-mistakes']);
+  const freshSeen = getUnseenBadges(freshBadges, seen).map(badge => badge.notificationId);
+  assert.deepEqual(getUnseenBadges(getBadges(JSON.parse(JSON.stringify(state)), content), freshSeen), []);
+  // Legacy caches only contain badge IDs; they cannot hide the current saved award.
+  assert.equal(getUnseenBadges(freshBadges, ['first-solved', 'zero-mistakes']).length, 2);
+});
+
+test('later node completions and game wins do not replay acknowledged badges in the same run', () => {
+  const state = progress(); state.nodeResults[node.id] = receipt();
+  const seen = getUnseenBadges(getBadges(state, content), []).map(badge => badge.notificationId);
+  const second = campaign.nodes[1];
+  const secondQuest = content.quests.find(item => item.id === second.questId);
+  state.nodeResults[second.id] = { ...receipt(), nodeId: second.id, questId: secondQuest.id,
+    attemptId: 'later-attempt', completedAt: '2026-09-08T12:00:00.000Z',
+    answers: secondQuest.questionIds.map(questionId => ({ questionId, correct: true })) };
+  assert.deepEqual(getUnseenBadges(getBadges(state, content), seen), []);
+  state.checkpoints = [{ checkpointId: campaign.checkpoints[0].id, status: 'completed' }];
+  assert.deepEqual(getUnseenBadges(getBadges(state, content), seen).map(badge => badge.id), ['region-1']);
 });
 
 test('zero mistakes requires every answer from both quizzes, not just accuracy or a partial/duplicate list', () => {

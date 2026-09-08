@@ -29,5 +29,15 @@ export function getBadges(progress: UserProgress | null, content: ContentCatalog
     const checkpoint = campaign?.checkpoints.find(item => item.stage === stage);
     return Boolean(checkpoint && progress?.checkpoints.some(item => item.checkpointId === checkpoint.id && item.status === 'completed'));
   })];
-  return badgeDefinitions.map((badge, index) => ({ ...badge, earned: earned[index] ?? false }));
+  // A fresh database run has a new first completion receipt even if the anonymous
+  // user/campaign and the phone's notification cache are unchanged. Later saves
+  // and replays retain that first receipt, so they do not repeat celebrations.
+  const first = [...receipts].sort((a, b) => a.completedAt.localeCompare(b.completedAt) || a.attemptId.localeCompare(b.attemptId))[0];
+  return badgeDefinitions.map((badge, index) => ({ ...badge, earned: earned[index] ?? false,
+    notificationId: earned[index] ? JSON.stringify([badge.id, first?.attemptId ?? null, first?.completedAt ?? null]) : null,
+  }));
+}
+
+export function getUnseenBadges(badges: ReturnType<typeof getBadges>, acknowledged: readonly string[]) {
+  return badges.filter(badge => badge.earned && badge.notificationId !== null && !acknowledged.includes(badge.notificationId));
 }
