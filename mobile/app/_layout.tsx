@@ -13,6 +13,7 @@ import {
 import { View } from 'react-native';
 
 import { LearningProvider } from '../providers/LearningProvider';
+import { BadgeUnlocks } from '../components/learning/BadgeUnlocks';
 
 // Shared routing shell. Screen presentation belongs to Valli.
 export default function RootLayout() {
@@ -43,6 +44,7 @@ export default function RootLayout() {
         <Stack.Screen name="skills" />
         <Stack.Screen name="achievements" />
       </Stack>
+      <BadgeUnlocks />
     </LearningProvider>
   );
 }
