@@ -6,6 +6,8 @@ import { useLearningQuest } from '../../hooks/useLearningQuest';
 import { JourneyHeader } from '../../components/learning/JourneyHeader';
 import { QuizCard } from '../../components/learning/QuizCard';
 import { StudyCard } from '../../components/learning/StudyCard';
+import { QuestTrail } from '../../components/learning/QuestTrail';
+import { QuestResults } from '../../components/learning/QuestResults';
 
 const BLUE = '#3A7BD5';
 const BLUE_DARK = '#2563B8';
@@ -13,20 +15,6 @@ const BLUE_DARK = '#2563B8';
 // ─────────────────────────────────────────────────────────────
 // Small helpers
 // ─────────────────────────────────────────────────────────────
-function ProgressBar({ current, total }: { current: number; total: number }) {
-  const pct = total > 0 ? Math.min(1, current / total) : 0;
-  return (
-    <View style={pb.track}>
-      <View style={[pb.fill, { flex: pct }]} />
-      <View style={{ flex: 1 - pct }} />
-    </View>
-  );
-}
-const pb = StyleSheet.create({
-  track: { height: 6, borderRadius: 3, backgroundColor: '#E0E8F8', flexDirection: 'row', overflow: 'hidden', marginBottom: 4 },
-  fill: { backgroundColor: BLUE },
-});
-
 function ActionButton({ label, onPress, disabled, variant = 'primary' }: {
   label: string; onPress: () => void; disabled?: boolean; variant?: 'primary' | 'secondary';
 }) {
@@ -97,13 +85,9 @@ export default function QuestScreen() {
       {/* Header */}
       <View style={s.header}>
         <Text style={s.questTitle}>{quest.title}</Text>
-        {quest.section && <Text style={s.sectionTag}>{quest.section.subject.toUpperCase()} · Part {quest.section.number} of {quest.section.count}</Text>}
-        {quest.questionCount > 0 && (
-          <Text style={s.qProgress}>
-            {quest.answeredCount}/{quest.questionCount} answered
-          </Text>
-        )}
       </View>
+
+      <QuestTrail quest={quest} />
 
       {['lesson', 'example', 'visualization'].includes(quest.phase) && <StudyCard quest={quest} />}
 
@@ -112,65 +96,10 @@ export default function QuestScreen() {
       )}
 
       {/* ── Result ────────────────────────────────────────── */}
-      {quest.phase === 'result' && (
-        <View style={s.section}>
-          {quest.result?.sectionPerformances?.map(section => <View key={section.subject}>
-            <Text style={s.sectionTag}>{section.subject.toUpperCase()} · {section.performance.score}/100</Text>
-          </View>)}
-          {/* Saving/pending */}
-          {quest.submitting && (
-            <View style={s.savingRow}>
-              <ActivityIndicator size="small" color={BLUE} />
-              <Text style={s.savingText}>Saving your result…</Text>
-            </View>
-          )}
-
-          {/* Save error + retry */}
-          {quest.saveStatus === 'error' && (
-            <View style={s.saveErrorCard}>
-              <Text style={s.saveErrorText}>{quest.error ?? 'Failed to save.'}</Text>
-              <ActionButton label="Retry save" onPress={quest.retrySave} variant="secondary" />
-            </View>
-          )}
-
-          {/* Committed result */}
-          {quest.result && (
-            <View style={s.resultCard}>
-              <Text style={s.resultHeading}>Quest complete!</Text>
-              {quest.result.skillChanges.map(change => (
-                <View key={change.skillId} style={{ alignSelf: 'stretch', gap: 6 }}>
-                  <Text style={s.sectionTag}>{change.skillId.replace(/_/g, ' ')}</Text>
-                  <Text style={s.lessonBody}>{change.before.mastery} → {change.after.mastery} / 100</Text>
-                  <ProgressBar current={change.after.mastery} total={100} />
-                </View>
-              ))}
-              {quest.saveOutcome?.status === 'saved' && quest.saveOutcome.xpAwardedNow > 0 && (
-                <View style={s.xpBadge}>
-                  <Text style={s.xpBadgeText}>+{quest.saveOutcome.xpAwardedNow} XP</Text>
-                </View>
-              )}
-              {quest.saveOutcome?.status === 'saved' && quest.saveOutcome.xpAwardedNow === 0 && (
-                <Text style={s.xpNoteText}>XP already awarded for this node.</Text>
-              )}
-              {quest.saveOutcome?.receipt.unlockedNodeIds && quest.saveOutcome.receipt.unlockedNodeIds.length > 0 && (
-                <Text style={s.unlockedText}>
-                  🔓 {quest.saveOutcome.receipt.unlockedNodeIds.length} new node{quest.saveOutcome.receipt.unlockedNodeIds.length > 1 ? 's' : ''} unlocked
-                </Text>
-              )}
-            </View>
-          )}
-
-          {/* Pending (no committed receipt yet, not submitting, no error) */}
-          {!quest.submitting && quest.saveStatus !== 'error' && !quest.result && quest.attemptResult && (
-            <View style={s.resultCard}>
-              <Text style={s.resultHeading}>Quest finished ✓</Text>
-              <Text style={s.pendingText}>Awaiting confirmation…</Text>
-            </View>
-          )}
-
-          <ActionButton label="← Back to map" onPress={() => router.replace({ pathname: '/map', params: quest.saveOutcome?.status === 'saved' ? { completedNodeId: nodeId, transitionId: quest.saveOutcome.receipt.attemptId } : {} })} />
-        </View>
-      )}
+      {quest.phase === 'result' && <>
+        <QuestResults quest={quest} />
+        <ActionButton label="Back to map ?" disabled={quest.submitting} onPress={() => router.replace({ pathname: '/map', params: quest.saveOutcome?.status === 'saved' ? { completedNodeId: nodeId, transitionId: quest.saveOutcome.receipt.attemptId } : {} })} />
+      </>}
     </ScrollView>
     </View>
   );
@@ -181,7 +110,7 @@ export default function QuestScreen() {
 // ─────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F0F4FF' },
-  content: { padding: 20, paddingBottom: 60, gap: 20 },
+  content: { padding: 20, paddingBottom: 60, gap: 16, width: '100%', maxWidth: 600, alignSelf: 'center' },
   centred: { alignItems: 'center', justifyContent: 'center', gap: 16 },
 
   // Gate
